@@ -6,6 +6,7 @@ const Organizer = (function () {
   let workingAssignments = [];
   let unfilledSlots = [];
   let activeTab = 'overview';
+  let byTeamSelectedId = null;
   let rosterGrouping = 'session';
   let lastAlgorithm = 'round-robin';
   let lastMaxPerMember = 3;
@@ -56,7 +57,7 @@ const Organizer = (function () {
       '<button class="link-back" id="btn-home">&larr; Home</button>' +
       '<h2>Organizer</h2>' +
       '<div class="tabs">' +
-      tabBtn('overview', 'Overview') + tabBtn('volunteers', 'Volunteers by Session') + tabBtn('needs', 'Service Needs') + tabBtn('roster', 'Roster') +
+      tabBtn('overview', 'Overview') + tabBtn('volunteers', 'Volunteers by Session') + tabBtn('byteam', 'Volunteers by Team') + tabBtn('needs', 'Service Needs') + tabBtn('roster', 'Roster') +
       '</div>' +
       '<div id="tab-content"></div>' +
       '</div>';
@@ -66,6 +67,7 @@ const Organizer = (function () {
     });
     if (activeTab === 'overview') renderOverview();
     else if (activeTab === 'volunteers') renderVolunteersBySession();
+    else if (activeTab === 'byteam') renderVolunteersByTeam();
     else if (activeTab === 'needs') renderNeeds();
     else renderRoster();
   }
@@ -191,6 +193,120 @@ const Organizer = (function () {
       if (!hit || seen.has(m.id)) return false;
       seen.add(m.id);
       return true;
+    });
+  }
+
+  // ---- volunteers by team ------------------------------------------------------
+
+  function renderVolunteersByTeam() {
+    document.getElementById('tab-content').innerHTML =
+      '<div class="form"><label>Team<select id="byteam-select">' +
+      '<option value="">Select a team…</option>' +
+      teams.map(function (t) {
+        return '<option value="' + t.id + '"' + (t.id === byTeamSelectedId ? ' selected' : '') + '>' + escapeHtml(t.name) + '</option>';
+      }).join('') +
+      '</select></label></div>' +
+      '<div id="byteam-body"></div>';
+
+    document.getElementById('byteam-select').addEventListener('change', function () {
+      byTeamSelectedId = this.value || null;
+      renderByTeamBody();
+    });
+
+    renderByTeamBody();
+  }
+
+  function renderByTeamBody() {
+    const body = document.getElementById('byteam-body');
+    if (!byTeamSelectedId) {
+      body.innerHTML = '<p class="muted">Pick a team to see its volunteers and every session they\'re registered for.</p>';
+      return;
+    }
+
+    const t = teams.find(function (x) { return x.id === byTeamSelectedId; });
+    const teamMembers = members.filter(function (m) { return m.teamId === byTeamSelectedId; });
+
+    const rows = teamMembers.map(function (m) {
+      const sessionLabels = SESSIONS.filter(function (s) {
+        return (m.availability || []).some(function (a) { return a.sessionId === s.id; });
+      }).map(function (s) { return s.label; }).join(', ');
+      return '<tr>' +
+        '<td>' + escapeHtml(m.name) + '</td>' +
+        '<td>' + escapeHtml(m.phone || '') + '</td>' +
+        '<td>' + escapeHtml(m.sex || '') + '</td>' +
+        '<td>' + escapeHtml(m.age || '') + '</td>' +
+        '<td>' + (sessionLabels || '<span class="muted">None yet</span>') + '</td>' +
+        '<td class="row-actions"><button class="btn-small" data-byteam-edit="' + m.id + '">Edit</button></td>' +
+        '</tr>';
+    }).join('');
+
+    body.innerHTML =
+      '<h3>' + escapeHtml(t ? t.name : '(unknown team)') + (t && t.leaderName ? ' <span class="muted">— ' + escapeHtml(t.leaderName) + '</span>' : '') + '</h3>' +
+      '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Sex</th><th>Age</th><th>Registered sessions</th><th></th></tr></thead>' +
+      '<tbody>' + (rows || '<tr><td colspan="6" class="muted">No members in this team yet.</td></tr>') + '</tbody></table></div>';
+
+    body.querySelectorAll('[data-byteam-edit]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const m = members.find(function (mm) { return mm.id === btn.getAttribute('data-byteam-edit'); });
+        renderByTeamMemberForm(m);
+      });
+    });
+  }
+
+  function renderByTeamMemberForm(member) {
+    const availSet = new Set(((member && member.availability) || []).map(function (a) { return a.sessionId + '|' + a.serviceId; }));
+
+    let grid = '<table class="avail-grid"><thead><tr><th>Session</th>' +
+      SERVICES.map(function (s) { return '<th>' + escapeHtml(s.label) + '</th>'; }).join('') + '</tr></thead><tbody>';
+    SESSIONS.forEach(function (session) {
+      grid += '<tr>';
+      grid += '<td><strong>' + escapeHtml(session.label) + '</strong><br><span class="muted">' + escapeHtml(session.event) + '</span></td>';
+      SERVICES.forEach(function (service) {
+        const key = session.id + '|' + service.id;
+        const checked = availSet.has(key) ? 'checked' : '';
+        grid += '<td class="cell-check"><input type="checkbox" data-session="' + session.id + '" data-service="' + service.id + '" ' + checked + '></td>';
+      });
+      grid += '</tr>';
+    });
+    grid += '</tbody></table>';
+
+    document.getElementById('tab-content').innerHTML =
+      '<button class="link-back" id="btn-byteam-cancel">&larr; Back to ' + escapeHtml(teamName(member.teamId)) + '</button>' +
+      '<h2>Edit member</h2>' +
+      '<form id="form-byteam-member" class="form">' +
+      '<label>Name<input type="text" id="bm-name" value="' + escapeHtml(member.name) + '" required></label>' +
+      '<label>Phone<input type="tel" id="bm-phone" value="' + escapeHtml(member.phone) + '" required></label>' +
+      '<label>Sex<select id="bm-sex"><option value="">--</option>' +
+      '<option value="M"' + (member.sex === 'M' ? ' selected' : '') + '>Male</option>' +
+      '<option value="F"' + (member.sex === 'F' ? ' selected' : '') + '>Female</option></select></label>' +
+      '<label>Age<input type="number" id="bm-age" min="1" max="120" value="' + escapeHtml(member.age) + '"></label>' +
+      '<h3>Willing to serve</h3>' +
+      '<p class="muted">Tick every session &times; service this person is willing to help with.</p>' +
+      '<div class="table-wrap">' + grid + '</div>' +
+      '<div class="form-actions"><button type="submit" class="btn-primary">Save member</button></div>' +
+      '</form>';
+
+    document.getElementById('btn-byteam-cancel').addEventListener('click', renderVolunteersByTeam);
+    document.getElementById('form-byteam-member').addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      const name = document.getElementById('bm-name').value.trim();
+      const phone = document.getElementById('bm-phone').value.trim();
+      const sex = document.getElementById('bm-sex').value;
+      const age = document.getElementById('bm-age').value;
+      if (!name || !phone) return;
+
+      const availability = [];
+      document.querySelectorAll('.avail-grid input[type=checkbox]:checked').forEach(function (cb) {
+        availability.push({ sessionId: cb.getAttribute('data-session'), serviceId: cb.getAttribute('data-service') });
+      });
+
+      const payload = { id: member.id, teamId: member.teamId, name: name, phone: phone, sex: sex, age: age, availability: availability };
+      try {
+        await Api.call('saveMember', { member: payload });
+        Object.assign(member, payload);
+        App.showToast('Member updated.');
+        renderVolunteersByTeam();
+      } catch (err) { App.showError(err.message); }
     });
   }
 
