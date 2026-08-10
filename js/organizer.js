@@ -323,7 +323,8 @@ const Organizer = (function () {
             '<span class="' + (short ? 'warning' : 'success') + '">' + assigned.length + ' / ' + required + '</span></div>';
           html += '<div class="chip-row">';
           assigned.forEach(function (a) {
-            html += '<span class="chip">' + escapeHtml(memberName(a.memberId)) + ' <span class="muted">(' + escapeHtml(teamName(a.teamId)) + ')</span>' +
+            const am = member(a.memberId);
+            html += '<span class="chip">' + escapeHtml(memberName(a.memberId)) + ' <span class="muted">(' + escapeHtml(teamName(a.teamId)) + (am && am.phone ? ' · ' + escapeHtml(am.phone) : '') + ')</span>' +
               ' <button class="chip-remove" data-remove-session="' + session.id + '" data-remove-service="' + service.id + '" data-remove-member="' + a.memberId + '">&times;</button></span>';
           });
           html += '</div>';
