@@ -150,7 +150,7 @@ const Organizer = (function () {
             html += '<div class="team-group-label muted">' + escapeHtml(teamName(teamId)) + '</div>';
             html += '<div class="chip-row">';
             teamMembers.forEach(function (m) {
-              html += '<span class="chip">' + escapeHtml(m.name) + '</span>';
+              html += '<span class="chip">' + escapeHtml(m.name) + (m.phone ? ' <span class="muted">(' + escapeHtml(m.phone) + ')</span>' : '') + '</span>';
             });
             html += '</div>';
           });
