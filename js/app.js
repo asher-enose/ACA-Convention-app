@@ -11,6 +11,8 @@ const App = (function () {
       '<strong>Team Leader</strong><span>Add your team members and their availability</span></button>' +
       '<button class="btn-landing" id="btn-organizer">' +
       '<strong>Organizer</strong><span>Set needs and build the roster</span></button>' +
+      '<button class="btn-landing" id="btn-control-room">' +
+      '<strong>Control Room</strong><span>Live coverage, incidents, key contacts</span></button>' +
       '<button class="btn-landing" id="btn-member">' +
       '<strong>Check my schedule</strong><span>Volunteers: see what you\'re assigned to</span></button>' +
       '</div>' +
@@ -19,6 +21,7 @@ const App = (function () {
 
     document.getElementById('btn-leader').addEventListener('click', function () { Leader.start(); });
     document.getElementById('btn-organizer').addEventListener('click', function () { Organizer.start(); });
+    document.getElementById('btn-control-room').addEventListener('click', function () { ControlRoom.start(); });
     document.getElementById('btn-member').addEventListener('click', function () { MemberLookup.start(); });
   }
 

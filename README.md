@@ -76,8 +76,12 @@ set the source to the `main` branch, root folder. Your site will be live at
   - *Overview* — headcounts per team and a per-volunteer load table (how
     many events each person is currently assigned to).
   - *Volunteers by Session* — every volunteer who's registered availability
-    for a given session, grouped by service, independent of whether a
-    roster has been generated yet.
+    for a given session, grouped by service then by team, independent of
+    whether a roster has been generated yet. Each session card has a
+    "Download Excel" button (CSV) for that session's registrants.
+  - *Volunteers by Team* — pick a team from a dropdown to see its members
+    across every session at once, with a toggle between grouping by name
+    (with an Edit action per member) and grouping by session.
   - *Service Needs* — set how many volunteers are required per service, per
     session (0 means "not needed at that session").
   - *Roster* — generate a roster with a chosen algorithm and a max-events-
@@ -85,6 +89,14 @@ set the source to the `main` branch, root folder. Your site will be live at
     someone with an override warning) before saving. Save writes the roster
     back to the sheet; Export CSV / Print are available for handing out
     physical schedules.
+- **Control Room**: for whoever's staffing live event coordination.
+  - *Dashboard* — required vs. filled per service for a chosen session
+    (defaults to a best guess at the current one based on the clock), as a
+    quick status board.
+  - *Incidents* — log a problem as it happens (what, where, reported by)
+    and mark it resolved/reopened; the open ones sort to the top.
+  - *Contacts* — a quick-reference list of key phone numbers (medical,
+    security, coordinators) that anyone can add to or remove from.
 - **Check my schedule**: a volunteer enters their name and phone and sees
   exactly what they've been assigned to, once the organizer has saved a
   roster.

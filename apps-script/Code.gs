@@ -18,7 +18,9 @@ var SHEETS = {
   Members: ['MemberId', 'TeamId', 'Name', 'Phone', 'Sex', 'Age', 'CreatedAt'],
   Availability: ['MemberId', 'SessionId', 'ServiceId'],
   ServiceNeeds: ['SessionId', 'ServiceId', 'RequiredCount'],
-  Assignments: ['AssignmentId', 'SessionId', 'ServiceId', 'TeamId', 'MemberId', 'BatchId', 'CreatedAt']
+  Assignments: ['AssignmentId', 'SessionId', 'ServiceId', 'TeamId', 'MemberId', 'BatchId', 'CreatedAt'],
+  Incidents: ['IncidentId', 'Description', 'Location', 'ReportedBy', 'Status', 'CreatedAt'],
+  Contacts: ['ContactId', 'Name', 'Role', 'Phone', 'Notes', 'CreatedAt']
 };
 
 function setupSheet() {
@@ -67,6 +69,9 @@ function route(action, body) {
     case 'saveServiceNeeds': return saveServiceNeeds(body.needs);
     case 'saveAssignments': return saveAssignments(body.assignments);
     case 'lookupMyAssignments': return lookupMyAssignments(body.name, body.phone);
+    case 'saveIncident': return saveIncident(body.incident);
+    case 'saveContact': return saveContact(body.contact);
+    case 'deleteContact': return deleteContact(body.contactId);
     default: throw new Error('Unknown action: ' + action);
   }
 }
@@ -134,7 +139,15 @@ function bootstrap() {
     return { id: a.AssignmentId, sessionId: a.SessionId, serviceId: a.ServiceId, teamId: a.TeamId, memberId: a.MemberId };
   });
 
-  return { teams: teams, members: members, serviceNeeds: serviceNeeds, assignments: assignments };
+  var incidents = sheetToObjects('Incidents').map(function (i) {
+    return { id: i.IncidentId, description: i.Description, location: i.Location, reportedBy: i.ReportedBy, status: i.Status || 'open', createdAt: i.CreatedAt };
+  });
+
+  var contacts = sheetToObjects('Contacts').map(function (c) {
+    return { id: c.ContactId, name: c.Name, role: c.Role, phone: c.Phone, notes: c.Notes };
+  });
+
+  return { teams: teams, members: members, serviceNeeds: serviceNeeds, assignments: assignments, incidents: incidents, contacts: contacts };
 }
 
 function addTeam(teamName, leaderName) {
@@ -242,4 +255,71 @@ function lookupMyAssignments(name, phone) {
     .map(function (a) { return { sessionId: a.SessionId, serviceId: a.ServiceId }; });
 
   return { found: true, name: match.Name, assignments: assignments };
+}
+
+function saveIncident(incident) {
+  if (!incident || !(incident.description || '').trim()) throw new Error('Description is required');
+
+  var id = incident.id;
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Incidents');
+
+  if (id) {
+    var values = sh.getDataRange().getValues();
+    var found = false;
+    for (var i = 1; i < values.length; i++) {
+      if (values[i][0] === id) {
+        sh.getRange(i + 1, 1, 1, SHEETS.Incidents.length).setValues([[
+          id, incident.description.trim(), incident.location || '', incident.reportedBy || '',
+          incident.status || 'open', values[i][5]
+        ]]);
+        found = true;
+        break;
+      }
+    }
+    if (!found) throw new Error('Incident not found');
+  } else {
+    id = Utilities.getUuid();
+    appendRow('Incidents', {
+      IncidentId: id, Description: incident.description.trim(), Location: incident.location || '',
+      ReportedBy: incident.reportedBy || '', Status: incident.status || 'open', CreatedAt: new Date()
+    });
+  }
+
+  return { id: id };
+}
+
+function saveContact(contact) {
+  if (!contact || !(contact.name || '').trim()) throw new Error('Name is required');
+
+  var id = contact.id;
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Contacts');
+
+  if (id) {
+    var values = sh.getDataRange().getValues();
+    var found = false;
+    for (var i = 1; i < values.length; i++) {
+      if (values[i][0] === id) {
+        sh.getRange(i + 1, 1, 1, SHEETS.Contacts.length).setValues([[
+          id, contact.name.trim(), contact.role || '', contact.phone || '', contact.notes || '', values[i][5]
+        ]]);
+        found = true;
+        break;
+      }
+    }
+    if (!found) throw new Error('Contact not found');
+  } else {
+    id = Utilities.getUuid();
+    appendRow('Contacts', {
+      ContactId: id, Name: contact.name.trim(), Role: contact.role || '', Phone: contact.phone || '',
+      Notes: contact.notes || '', CreatedAt: new Date()
+    });
+  }
+
+  return { id: id };
+}
+
+function deleteContact(contactId) {
+  if (!contactId) throw new Error('contactId is required');
+  deleteRowsWhere('Contacts', function (c) { return c.ContactId === contactId; });
+  return { deleted: true };
 }
