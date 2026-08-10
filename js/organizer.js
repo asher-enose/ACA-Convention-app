@@ -114,23 +114,39 @@ const Organizer = (function () {
     const groups = {};
     SESSIONS.forEach(function (s) { (groups[s.group] = groups[s.group] || []).push(s); });
 
-    let html = '<p class="muted">Everyone who has registered availability for each session, regardless of whether a roster has been generated yet.</p>';
+    let html = '<p class="muted">Everyone who has registered availability for each session, grouped by team, regardless of whether a roster has been generated yet.</p>';
 
     Object.keys(groups).forEach(function (groupLabel) {
       html += '<h3>' + escapeHtml(groupLabel) + '</h3>';
       groups[groupLabel].forEach(function (session) {
         const registered = eligibleMembersFor2(session.id);
-        html += '<div class="roster-session"><div class="roster-session-title">' + escapeHtml(session.label) +
-          ' <span class="muted">— ' + escapeHtml(session.event) + ' · ' + registered.length + ' registered</span></div>';
 
-        SERVICES.forEach(function (service) {
-          const forService = eligibleMembersFor(session.id, service.id);
-          if (!forService.length) return;
+        html += '<div class="roster-session">' +
+          '<div class="roster-session-title" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">' +
+          '<span>' + escapeHtml(session.label) + ' <span class="muted">— ' + escapeHtml(session.event) + ' · ' + registered.length + ' registered</span></span>' +
+          (registered.length ? '<button class="btn-small" data-download-session="' + session.id + '">Download Excel</button>' : '') +
+          '</div>';
+
+        if (!registered.length) {
+          html += '<p class="muted">No one registered yet.</p></div>';
+          return;
+        }
+
+        const byTeam = {};
+        registered.forEach(function (m) { (byTeam[m.teamId] = byTeam[m.teamId] || []).push(m); });
+
+        var orderedTeamIds = teams.map(function (t) { return t.id; })
+          .concat(Object.keys(byTeam).filter(function (id) { return teams.every(function (t) { return t.id !== id; }); }));
+
+        orderedTeamIds.forEach(function (teamId) {
+          const teamMembers = byTeam[teamId];
+          if (!teamMembers || !teamMembers.length) return;
           html += '<div class="roster-slot">';
-          html += '<div class="roster-slot-head"><strong>' + escapeHtml(service.label) + '</strong> <span class="muted">' + forService.length + '</span></div>';
+          html += '<div class="roster-slot-head"><strong>' + escapeHtml(teamName(teamId)) + '</strong> <span class="muted">' + teamMembers.length + '</span></div>';
           html += '<div class="chip-row">';
-          forService.forEach(function (m) {
-            html += '<span class="chip">' + escapeHtml(m.name) + ' <span class="muted">(' + escapeHtml(teamName(m.teamId)) + ')</span></span>';
+          teamMembers.forEach(function (m) {
+            const services = servicesFor(m, session.id);
+            html += '<span class="chip">' + escapeHtml(m.name) + (services ? ' <span class="muted">(' + escapeHtml(services) + ')</span>' : '') + '</span>';
           });
           html += '</div></div>';
         });
@@ -139,6 +155,35 @@ const Organizer = (function () {
     });
 
     document.getElementById('tab-content').innerHTML = html;
+
+    root().querySelectorAll('[data-download-session]').forEach(function (btn) {
+      btn.addEventListener('click', function () { exportSessionCsv(btn.getAttribute('data-download-session')); });
+    });
+  }
+
+  function servicesFor(member, sessionId) {
+    return SERVICES.filter(function (s) {
+      return (member.availability || []).some(function (a) { return a.sessionId === sessionId && a.serviceId === s.id; });
+    }).map(function (s) { return s.label; }).join(', ');
+  }
+
+  function exportSessionCsv(sessionId) {
+    const session = sessionById(sessionId);
+    const registered = eligibleMembersFor2(sessionId).slice().sort(function (a, b) {
+      return teamName(a.teamId).localeCompare(teamName(b.teamId)) || a.name.localeCompare(b.name);
+    });
+    const rows = [['Team', 'Name', 'Phone', 'Sex', 'Services']];
+    registered.forEach(function (m) {
+      rows.push([teamName(m.teamId), m.name, m.phone || '', m.sex || '', servicesFor(m, sessionId)]);
+    });
+    const csv = rows.map(function (r) { return r.map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'volunteers-' + session.label.replace(/[^a-z0-9]+/gi, '-') + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function eligibleMembersFor2(sessionId) {
