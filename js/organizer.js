@@ -1,5 +1,4 @@
 const Organizer = (function () {
-  let passcode = null;
   let teams = [];
   let members = [];
   let serviceNeeds = [];
@@ -11,15 +10,14 @@ const Organizer = (function () {
   let lastAlgorithm = 'round-robin';
   let lastMaxPerMember = 3;
 
-  async function start(pc) {
-    passcode = pc;
+  async function start() {
     await loadData();
     activeTab = 'overview';
     render();
   }
 
   async function loadData() {
-    const data = await Api.call('bootstrap', { passcode: passcode });
+    const data = await Api.call('bootstrap', {});
     teams = data.teams;
     members = data.members;
     serviceNeeds = data.serviceNeeds;
@@ -58,7 +56,7 @@ const Organizer = (function () {
       '<button class="link-back" id="btn-home">&larr; Home</button>' +
       '<h2>Organizer</h2>' +
       '<div class="tabs">' +
-      tabBtn('overview', 'Overview') + tabBtn('needs', 'Service Needs') + tabBtn('roster', 'Roster') +
+      tabBtn('overview', 'Overview') + tabBtn('volunteers', 'Volunteers by Session') + tabBtn('needs', 'Service Needs') + tabBtn('roster', 'Roster') +
       '</div>' +
       '<div id="tab-content"></div>' +
       '</div>';
@@ -67,6 +65,7 @@ const Organizer = (function () {
       btn.addEventListener('click', function () { activeTab = btn.getAttribute('data-tab'); render(); });
     });
     if (activeTab === 'overview') renderOverview();
+    else if (activeTab === 'volunteers') renderVolunteersBySession();
     else if (activeTab === 'needs') renderNeeds();
     else renderRoster();
   }
@@ -109,6 +108,49 @@ const Organizer = (function () {
       '<tbody>' + (memberRows || '<tr><td colspan="3" class="muted">No volunteers yet.</td></tr>') + '</tbody></table></div>';
   }
 
+  // ---- volunteers by session ------------------------------------------------------
+
+  function renderVolunteersBySession() {
+    const groups = {};
+    SESSIONS.forEach(function (s) { (groups[s.group] = groups[s.group] || []).push(s); });
+
+    let html = '<p class="muted">Everyone who has registered availability for each session, regardless of whether a roster has been generated yet.</p>';
+
+    Object.keys(groups).forEach(function (groupLabel) {
+      html += '<h3>' + escapeHtml(groupLabel) + '</h3>';
+      groups[groupLabel].forEach(function (session) {
+        const registered = eligibleMembersFor2(session.id);
+        html += '<div class="roster-session"><div class="roster-session-title">' + escapeHtml(session.label) +
+          ' <span class="muted">— ' + escapeHtml(session.event) + ' · ' + registered.length + ' registered</span></div>';
+
+        SERVICES.forEach(function (service) {
+          const forService = eligibleMembersFor(session.id, service.id);
+          if (!forService.length) return;
+          html += '<div class="roster-slot">';
+          html += '<div class="roster-slot-head"><strong>' + escapeHtml(service.label) + '</strong> <span class="muted">' + forService.length + '</span></div>';
+          html += '<div class="chip-row">';
+          forService.forEach(function (m) {
+            html += '<span class="chip">' + escapeHtml(m.name) + ' <span class="muted">(' + escapeHtml(teamName(m.teamId)) + ')</span></span>';
+          });
+          html += '</div></div>';
+        });
+        html += '</div>';
+      });
+    });
+
+    document.getElementById('tab-content').innerHTML = html;
+  }
+
+  function eligibleMembersFor2(sessionId) {
+    const seen = new Set();
+    return members.filter(function (m) {
+      const hit = (m.availability || []).some(function (a) { return a.sessionId === sessionId; });
+      if (!hit || seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
+    });
+  }
+
   // ---- service needs ------------------------------------------------------
 
   function renderNeeds() {
@@ -142,7 +184,7 @@ const Organizer = (function () {
         });
       });
       try {
-        await Api.call('saveServiceNeeds', { passcode: passcode, needs: needs });
+        await Api.call('saveServiceNeeds', { needs: needs });
         serviceNeeds = needs;
         App.showToast('Service needs saved.');
       } catch (err) { App.showError(err.message); }
@@ -189,7 +231,7 @@ const Organizer = (function () {
     });
     document.getElementById('btn-save-roster').addEventListener('click', async function () {
       try {
-        await Api.call('saveAssignments', { passcode: passcode, assignments: workingAssignments });
+        await Api.call('saveAssignments', { assignments: workingAssignments });
         savedAssignments = workingAssignments.slice();
         App.showToast('Roster saved — visible to volunteers via "Check my schedule".');
         renderRoster();

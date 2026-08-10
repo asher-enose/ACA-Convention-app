@@ -17,43 +17,9 @@ const App = (function () {
       '<div id="banner"></div>' +
       '</div>';
 
-    document.getElementById('btn-leader').addEventListener('click', function () { showPasscodeGate('leader'); });
-    document.getElementById('btn-organizer').addEventListener('click', function () { showPasscodeGate('organizer'); });
+    document.getElementById('btn-leader').addEventListener('click', function () { Leader.start(); });
+    document.getElementById('btn-organizer').addEventListener('click', function () { Organizer.start(); });
     document.getElementById('btn-member').addEventListener('click', function () { MemberLookup.start(); });
-  }
-
-  function showPasscodeGate(wantedRole) {
-    const label = wantedRole === 'organizer' ? 'Organizer' : 'Team Leader';
-    root().innerHTML =
-      '<div class="screen">' +
-      '<button class="link-back" id="btn-home">&larr; Home</button>' +
-      '<h2>' + label + ' access</h2>' +
-      '<form id="form-passcode" class="form">' +
-      '<label>Passcode<input type="password" id="passcode-input" required autofocus></label>' +
-      '<button type="submit" class="btn-primary">Continue</button>' +
-      '</form>' +
-      '<div id="gate-error"></div>' +
-      '</div>';
-
-    document.getElementById('btn-home').addEventListener('click', goHome);
-    document.getElementById('form-passcode').addEventListener('submit', async function (ev) {
-      ev.preventDefault();
-      const passcode = document.getElementById('passcode-input').value.trim();
-      const errEl = document.getElementById('gate-error');
-      errEl.innerHTML = '';
-      try {
-        const result = await Api.call('checkPasscode', { passcode: passcode });
-        if (wantedRole === 'organizer' && result.role === 'organizer') {
-          await Organizer.start(passcode);
-        } else if (wantedRole === 'leader' && (result.role === 'leader' || result.role === 'organizer')) {
-          await Leader.start(passcode);
-        } else {
-          errEl.innerHTML = '<p class="warning">Incorrect passcode for ' + label.toLowerCase() + ' access.</p>';
-        }
-      } catch (err) {
-        errEl.innerHTML = '<p class="warning">' + escapeHtml(err.message) + '</p>';
-      }
-    });
   }
 
   function showToast(message, type) {

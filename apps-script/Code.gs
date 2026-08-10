@@ -5,9 +5,8 @@
  *   1. Create a blank Google Sheet.
  *   2. Extensions > Apps Script, delete the default code, paste this whole file.
  *   3. Run setupSheet() once (Run menu > select setupSheet). Approve permissions when asked.
- *   4. Edit the two passcode values inside setPasscodes() below, then run setPasscodes() once.
- *   5. Deploy > New deployment > type "Web app". Execute as: Me. Who has access: Anyone.
- *   6. Copy the Web App URL into js/constants.js as CONFIG.API_URL.
+ *   4. Deploy > New deployment > type "Web app". Execute as: Me. Who has access: Anyone.
+ *   5. Copy the Web App URL into js/constants.js as CONFIG.API_URL.
  *
  * A member can only be assigned to ONE service per session (can't work two
  * things at once) — that constraint lives in the frontend scheduler, not here.
@@ -36,14 +35,7 @@ function setupSheet() {
   if (def && def.getLastRow() === 0 && ss.getSheets().length > Object.keys(SHEETS).length) {
     ss.deleteSheet(def);
   }
-  SpreadsheetApp.getUi().alert('Setup complete. Next: edit and run setPasscodes(), then deploy as a Web App.');
-}
-
-function setPasscodes() {
-  var props = PropertiesService.getScriptProperties();
-  props.setProperty('LEADER_PASSCODE', 'CHANGE_ME_LEADER');
-  props.setProperty('ORGANIZER_PASSCODE', 'CHANGE_ME_ORGANIZER');
-  SpreadsheetApp.getUi().alert('Passcodes saved. Edit the two CHANGE_ME values in setPasscodes() before running it, then run again.');
+  SpreadsheetApp.getUi().alert('Setup complete. Next: deploy as a Web App.');
 }
 
 // ---- HTTP entry points -----------------------------------------------
@@ -68,32 +60,15 @@ function jsonOut(obj) {
 
 function route(action, body) {
   switch (action) {
-    case 'checkPasscode': return { role: getRole(body.passcode) };
-    case 'bootstrap': return bootstrap(body.passcode);
-    case 'addTeam': return addTeam(body.passcode, body.teamName, body.leaderName);
-    case 'saveMember': return saveMember(body.passcode, body.member);
-    case 'deleteMember': return deleteMember(body.passcode, body.memberId);
-    case 'saveServiceNeeds': return saveServiceNeeds(body.passcode, body.needs);
-    case 'saveAssignments': return saveAssignments(body.passcode, body.assignments);
+    case 'bootstrap': return bootstrap();
+    case 'addTeam': return addTeam(body.teamName, body.leaderName);
+    case 'saveMember': return saveMember(body.member);
+    case 'deleteMember': return deleteMember(body.memberId);
+    case 'saveServiceNeeds': return saveServiceNeeds(body.needs);
+    case 'saveAssignments': return saveAssignments(body.assignments);
     case 'lookupMyAssignments': return lookupMyAssignments(body.name, body.phone);
     default: throw new Error('Unknown action: ' + action);
   }
-}
-
-// ---- Auth ---------------------------------------------------------------
-
-function getRole(passcode) {
-  if (!passcode) return null;
-  var props = PropertiesService.getScriptProperties();
-  if (passcode === props.getProperty('ORGANIZER_PASSCODE')) return 'organizer';
-  if (passcode === props.getProperty('LEADER_PASSCODE')) return 'leader';
-  return null;
-}
-
-function requireRole(passcode, allowedRoles) {
-  var role = getRole(passcode);
-  if (!role || allowedRoles.indexOf(role) === -1) throw new Error('Not authorized');
-  return role;
 }
 
 // ---- Sheet helpers --------------------------------------------------------
@@ -128,9 +103,7 @@ function deleteRowsWhere(sheetName, matchFn) {
 
 // ---- Data actions -----------------------------------------------------
 
-function bootstrap(passcode) {
-  requireRole(passcode, ['leader', 'organizer']);
-
+function bootstrap() {
   var teams = sheetToObjects('Teams').map(function (t) {
     return { id: t.TeamId, name: t.TeamName, leaderName: t.LeaderName };
   });
@@ -164,8 +137,7 @@ function bootstrap(passcode) {
   return { teams: teams, members: members, serviceNeeds: serviceNeeds, assignments: assignments };
 }
 
-function addTeam(passcode, teamName, leaderName) {
-  requireRole(passcode, ['leader', 'organizer']);
+function addTeam(teamName, leaderName) {
   teamName = (teamName || '').trim();
   if (!teamName) throw new Error('Team name is required');
   var id = Utilities.getUuid();
@@ -173,8 +145,7 @@ function addTeam(passcode, teamName, leaderName) {
   return { id: id, name: teamName, leaderName: (leaderName || '').trim() };
 }
 
-function saveMember(passcode, member) {
-  requireRole(passcode, ['leader', 'organizer']);
+function saveMember(member) {
   if (!member || !member.teamId || !(member.name || '').trim() || !(member.phone || '').trim()) {
     throw new Error('Team, name and phone are required');
   }
@@ -213,8 +184,7 @@ function saveMember(passcode, member) {
   return { id: id };
 }
 
-function deleteMember(passcode, memberId) {
-  requireRole(passcode, ['leader', 'organizer']);
+function deleteMember(memberId) {
   if (!memberId) throw new Error('memberId is required');
   deleteRowsWhere('Members', function (m) { return m.MemberId === memberId; });
   deleteRowsWhere('Availability', function (a) { return a.MemberId === memberId; });
@@ -222,8 +192,7 @@ function deleteMember(passcode, memberId) {
   return { deleted: true };
 }
 
-function saveServiceNeeds(passcode, needs) {
-  requireRole(passcode, ['organizer']);
+function saveServiceNeeds(needs) {
   needs = needs || [];
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ServiceNeeds');
   var lastRow = sh.getLastRow();
@@ -235,8 +204,7 @@ function saveServiceNeeds(passcode, needs) {
   return { saved: needs.length };
 }
 
-function saveAssignments(passcode, assignments) {
-  requireRole(passcode, ['organizer']);
+function saveAssignments(assignments) {
   assignments = assignments || [];
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Assignments');
   var lastRow = sh.getLastRow();

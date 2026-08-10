@@ -1,18 +1,16 @@
 const Leader = (function () {
-  let passcode = null;
   let teams = [];
   let members = [];
   let currentTeamId = null;
 
-  async function start(pc) {
-    passcode = pc;
+  async function start() {
     await loadData();
     currentTeamId = null;
     renderTeamPicker();
   }
 
   async function loadData() {
-    const data = await Api.call('bootstrap', { passcode: passcode });
+    const data = await Api.call('bootstrap', {});
     teams = data.teams;
     members = data.members;
   }
@@ -56,7 +54,7 @@ const Leader = (function () {
       const leaderName = document.getElementById('new-team-leader').value.trim();
       if (!name) return;
       try {
-        const team = await Api.call('addTeam', { passcode: passcode, teamName: name, leaderName: leaderName });
+        const team = await Api.call('addTeam', { teamName: name, leaderName: leaderName });
         teams.push(team);
         currentTeamId = team.id;
         renderDashboard();
@@ -109,7 +107,7 @@ const Leader = (function () {
         const m = members.find(function (mm) { return mm.id === id; });
         if (!confirm('Remove ' + m.name + ' from the team?')) return;
         try {
-          await Api.call('deleteMember', { passcode: passcode, memberId: id });
+          await Api.call('deleteMember', { memberId: id });
           members = members.filter(function (mm) { return mm.id !== id; });
           renderDashboard();
         } catch (err) { App.showError(err.message); }
@@ -174,7 +172,7 @@ const Leader = (function () {
       };
 
       try {
-        const result = await Api.call('saveMember', { passcode: passcode, member: payload });
+        const result = await Api.call('saveMember', { member: payload });
         if (member) {
           Object.assign(member, payload);
         } else {

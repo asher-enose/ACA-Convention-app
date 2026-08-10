@@ -2,15 +2,15 @@
 
 A small static site for coordinating volunteers for the Pastors' Event (Aug 12),
 Dedication Service (Aug 13 evening), and the 3-day convention (Aug 14–16,
-morning/afternoon/evening). Team leaders register their members and each
+breakfast/lunch/dinner). Team leaders register their members and each
 member's availability; the organizer sets staffing needs and generates/edits
 the roster. Volunteers can look up their own schedule.
 
 There's no traditional server — the site is plain HTML/CSS/JS (works on
 GitHub Pages) and reads/writes a Google Sheet through a small Google Apps
-Script Web App acting as the API. Access is gated by two shared passcodes
-(one for leaders, one for the organizer); "Check my schedule" is public and
-only reveals one person's own assignments (matched by name + phone).
+Script Web App acting as the API. There's no passcode gate — anyone with the
+link can act as a leader or organizer; "Check my schedule" only reveals one
+person's own assignments (matched by name + phone).
 
 ## 1. Set up the Google Sheet + API
 
@@ -23,15 +23,10 @@ only reveals one person's own assignments (matched by name + phone).
    **Run**. Approve the permissions prompt (it's your own script acting on
    your own sheet). This creates the Teams / Members / Availability /
    ServiceNeeds / Assignments tabs with headers.
-6. In the code, find `setPasscodes()` near the top and edit the two
-   `CHANGE_ME_...` values to whatever passcodes you want to give out — e.g.
-   one for team leaders, a different one for yourself as organizer. Then
-   select **setPasscodes** in the function dropdown and click **Run** once.
-   (You can re-edit and re-run this any time to change passcodes later.)
-7. Click **Deploy > New deployment**. Choose type **Web app**. Set
+6. Click **Deploy > New deployment**. Choose type **Web app**. Set
    **Execute as: Me**, **Who has access: Anyone**. Click **Deploy** and
    authorize again if asked.
-8. Copy the **Web app URL** it gives you.
+7. Copy the **Web app URL** it gives you.
 
 ## 2. Point the site at your API
 
@@ -74,13 +69,15 @@ set the source to the `main` branch, root folder. Your site will be live at
 
 ## How it works
 
-- **Team Leader** (leader passcode): create/select a team, add members with
-  name, phone, sex, age, and a grid of which session × service combinations
-  they're willing to help with. Leaders can edit or remove their own members
-  any time.
-- **Organizer** (organizer passcode):
+- **Team Leader**: create/select a team, add members with name, phone, sex,
+  age, and a grid of which session × service combinations they're willing to
+  help with. Anyone can edit or remove any team's members.
+- **Organizer**:
   - *Overview* — headcounts per team and a per-volunteer load table (how
     many events each person is currently assigned to).
+  - *Volunteers by Session* — every volunteer who's registered availability
+    for a given session, grouped by service, independent of whether a
+    roster has been generated yet.
   - *Service Needs* — set how many volunteers are required per service, per
     session (0 means "not needed at that session").
   - *Roster* — generate a roster with a chosen algorithm and a max-events-
@@ -88,9 +85,9 @@ set the source to the `main` branch, root folder. Your site will be live at
     someone with an override warning) before saving. Save writes the roster
     back to the sheet; Export CSV / Print are available for handing out
     physical schedules.
-- **Check my schedule** (no passcode): a volunteer enters their name and
-  phone and sees exactly what they've been assigned to, once the organizer
-  has saved a roster.
+- **Check my schedule**: a volunteer enters their name and phone and sees
+  exactly what they've been assigned to, once the organizer has saved a
+  roster.
 
 ### Roster algorithms
 
