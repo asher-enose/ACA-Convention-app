@@ -114,7 +114,7 @@ const Organizer = (function () {
     const groups = {};
     SESSIONS.forEach(function (s) { (groups[s.group] = groups[s.group] || []).push(s); });
 
-    let html = '<p class="muted">Everyone who has registered availability for each session, grouped by team, regardless of whether a roster has been generated yet.</p>';
+    let html = '<p class="muted">Everyone who has registered availability for each session, grouped by service and team, regardless of whether a roster has been generated yet.</p>';
 
     Object.keys(groups).forEach(function (groupLabel) {
       html += '<h3>' + escapeHtml(groupLabel) + '</h3>';
@@ -132,23 +132,30 @@ const Organizer = (function () {
           return;
         }
 
-        const byTeam = {};
-        registered.forEach(function (m) { (byTeam[m.teamId] = byTeam[m.teamId] || []).push(m); });
+        SERVICES.forEach(function (service) {
+          const forService = eligibleMembersFor(session.id, service.id);
+          if (!forService.length) return;
 
-        var orderedTeamIds = teams.map(function (t) { return t.id; })
-          .concat(Object.keys(byTeam).filter(function (id) { return teams.every(function (t) { return t.id !== id; }); }));
+          const byTeam = {};
+          forService.forEach(function (m) { (byTeam[m.teamId] = byTeam[m.teamId] || []).push(m); });
+          var orderedTeamIds = teams.map(function (t) { return t.id; })
+            .concat(Object.keys(byTeam).filter(function (id) { return teams.every(function (t) { return t.id !== id; }); }));
 
-        orderedTeamIds.forEach(function (teamId) {
-          const teamMembers = byTeam[teamId];
-          if (!teamMembers || !teamMembers.length) return;
           html += '<div class="roster-slot">';
-          html += '<div class="roster-slot-head"><strong>' + escapeHtml(teamName(teamId)) + '</strong> <span class="muted">' + teamMembers.length + '</span></div>';
-          html += '<div class="chip-row">';
-          teamMembers.forEach(function (m) {
-            const services = servicesFor(m, session.id);
-            html += '<span class="chip">' + escapeHtml(m.name) + (services ? ' <span class="muted">(' + escapeHtml(services) + ')</span>' : '') + '</span>';
+          html += '<div class="roster-slot-head"><strong>' + escapeHtml(service.label) + '</strong> <span class="muted">' + forService.length + '</span></div>';
+
+          orderedTeamIds.forEach(function (teamId) {
+            const teamMembers = byTeam[teamId];
+            if (!teamMembers || !teamMembers.length) return;
+            html += '<div class="team-group-label muted">' + escapeHtml(teamName(teamId)) + '</div>';
+            html += '<div class="chip-row">';
+            teamMembers.forEach(function (m) {
+              html += '<span class="chip">' + escapeHtml(m.name) + '</span>';
+            });
+            html += '</div>';
           });
-          html += '</div></div>';
+
+          html += '</div>';
         });
         html += '</div>';
       });

@@ -166,6 +166,7 @@ th { color: var(--muted); font-weight: 600; }
 .roster-slot { border-top: 1px solid var(--border); padding: 10px 0; }
 .roster-slot:first-of-type { border-top: none; }
 .roster-slot-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.team-group-label { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; margin: 8px 0 4px; }
 .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
 .chip {
   display: inline-flex;
