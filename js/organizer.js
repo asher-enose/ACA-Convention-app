@@ -7,6 +7,7 @@ const Organizer = (function () {
   let unfilledSlots = [];
   let activeTab = 'overview';
   let byTeamSelectedId = null;
+  let byTeamGrouping = 'name';
   let rosterGrouping = 'session';
   let lastAlgorithm = 'round-robin';
   let lastMaxPerMember = 3;
@@ -226,6 +227,29 @@ const Organizer = (function () {
     const t = teams.find(function (x) { return x.id === byTeamSelectedId; });
     const teamMembers = members.filter(function (m) { return m.teamId === byTeamSelectedId; });
 
+    let html =
+      '<h3>' + escapeHtml(t ? t.name : '(unknown team)') + (t && t.leaderName ? ' <span class="muted">— ' + escapeHtml(t.leaderName) + '</span>' : '') + '</h3>' +
+      '<div class="tabs small">' +
+      '<button class="tab-btn' + (byTeamGrouping === 'name' ? ' active' : '') + '" data-byteam-group="name">Group by Name</button>' +
+      '<button class="tab-btn' + (byTeamGrouping === 'session' ? ' active' : '') + '" data-byteam-group="session">Group by Session</button>' +
+      '</div>';
+
+    html += byTeamGrouping === 'session' ? renderByTeamGroupedBySession(teamMembers) : renderByTeamGroupedByName(teamMembers);
+
+    body.innerHTML = html;
+
+    body.querySelectorAll('[data-byteam-group]').forEach(function (btn) {
+      btn.addEventListener('click', function () { byTeamGrouping = btn.getAttribute('data-byteam-group'); renderByTeamBody(); });
+    });
+    body.querySelectorAll('[data-byteam-edit]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const m = members.find(function (mm) { return mm.id === btn.getAttribute('data-byteam-edit'); });
+        renderByTeamMemberForm(m);
+      });
+    });
+  }
+
+  function renderByTeamGroupedByName(teamMembers) {
     const rows = teamMembers.map(function (m) {
       const sessionLabels = SESSIONS.filter(function (s) {
         return (m.availability || []).some(function (a) { return a.sessionId === s.id; });
@@ -240,17 +264,36 @@ const Organizer = (function () {
         '</tr>';
     }).join('');
 
-    body.innerHTML =
-      '<h3>' + escapeHtml(t ? t.name : '(unknown team)') + (t && t.leaderName ? ' <span class="muted">— ' + escapeHtml(t.leaderName) + '</span>' : '') + '</h3>' +
-      '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Sex</th><th>Age</th><th>Registered sessions</th><th></th></tr></thead>' +
+    return '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Sex</th><th>Age</th><th>Registered sessions</th><th></th></tr></thead>' +
       '<tbody>' + (rows || '<tr><td colspan="6" class="muted">No members in this team yet.</td></tr>') + '</tbody></table></div>';
+  }
 
-    body.querySelectorAll('[data-byteam-edit]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        const m = members.find(function (mm) { return mm.id === btn.getAttribute('data-byteam-edit'); });
-        renderByTeamMemberForm(m);
+  function renderByTeamGroupedBySession(teamMembers) {
+    const groups = {};
+    SESSIONS.forEach(function (s) { (groups[s.group] = groups[s.group] || []).push(s); });
+
+    let html = '';
+    Object.keys(groups).forEach(function (groupLabel) {
+      html += '<h4>' + escapeHtml(groupLabel) + '</h4>';
+      groups[groupLabel].forEach(function (session) {
+        const registered = teamMembers.filter(function (m) {
+          return (m.availability || []).some(function (a) { return a.sessionId === session.id; });
+        });
+        html += '<div class="roster-slot">';
+        html += '<div class="roster-slot-head"><strong>' + escapeHtml(session.label) + '</strong> <span class="muted">— ' + escapeHtml(session.event) + ' · ' + registered.length + '</span></div>';
+        if (registered.length) {
+          html += '<div class="chip-row">';
+          registered.forEach(function (m) {
+            html += '<span class="chip">' + escapeHtml(m.name) + (m.phone ? ' <span class="muted">(' + escapeHtml(m.phone) + ')</span>' : '') + '</span>';
+          });
+          html += '</div>';
+        } else {
+          html += '<p class="muted">No one from this team registered for this session.</p>';
+        }
+        html += '</div>';
       });
     });
+    return html;
   }
 
   function renderByTeamMemberForm(member) {
