@@ -7,6 +7,7 @@ const ControlRoom = (function () {
   let contacts = [];
   let activeTab = 'dashboard';
   let selectedSessionId = null;
+  let editingContactId = null;
 
   async function start() {
     await loadData();
@@ -173,47 +174,91 @@ const ControlRoom = (function () {
   }
 
   // ---- contacts ------------------------------------------------------
+  // Services/departments are whatever's actually in the data -- nothing
+  // hardcoded. The "Service" field offers existing values via a datalist
+  // but also accepts a brand new one, so new departments can be created
+  // straight from this screen.
 
   function renderContacts() {
-    const rows = contacts.map(function (c) {
-      return '<tr>' +
-        '<td>' + escapeHtml(c.name) + '</td>' +
-        '<td>' + escapeHtml(c.role || '') + '</td>' +
-        '<td>' + escapeHtml(c.phone || '') + '</td>' +
-        '<td>' + escapeHtml(c.notes || '') + '</td>' +
-        '<td><button class="btn-small btn-danger" data-delete-contact="' + c.id + '">Delete</button></td>' +
-        '</tr>';
-    }).join('');
+    const editing = editingContactId ? contacts.find(function (c) { return c.id === editingContactId; }) : null;
+    const existingServices = Array.from(new Set(contacts.map(function (c) { return c.role; }).filter(Boolean))).sort();
 
-    document.getElementById('tab-content').innerHTML =
-      '<h3>Add a key contact</h3>' +
+    let html =
+      '<h3>' + (editing ? 'Edit contact' : 'Add a contact') + '</h3>' +
       '<form id="form-contact" class="form" style="max-width:480px;">' +
-      '<label>Name<input type="text" id="con-name" required></label>' +
-      '<label>Role<input type="text" id="con-role" placeholder="e.g. Medical, Security, Event Coordinator"></label>' +
-      '<label>Phone<input type="tel" id="con-phone"></label>' +
-      '<label>Notes<input type="text" id="con-notes"></label>' +
-      '<div class="form-actions"><button type="submit" class="btn-primary">Add contact</button></div>' +
-      '</form>' +
-      '<h3>Key contacts</h3>' +
-      '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Notes</th><th></th></tr></thead>' +
-      '<tbody>' + (rows || '<tr><td colspan="5" class="muted">No contacts added yet.</td></tr>') + '</tbody></table></div>';
+      '<label>Name<input type="text" id="con-name" value="' + escapeHtml(editing ? editing.name : '') + '" required></label>' +
+      '<label>Service<input type="text" id="con-role" list="service-options" value="' + escapeHtml(editing ? (editing.role || '') : '') + '" placeholder="Pick an existing service or type a new one"></label>' +
+      '<datalist id="service-options">' + existingServices.map(function (r) { return '<option value="' + escapeHtml(r) + '">'; }).join('') + '</datalist>' +
+      '<label>Phone<input type="tel" id="con-phone" value="' + escapeHtml(editing ? (editing.phone || '') : '') + '"></label>' +
+      '<label>Notes<input type="text" id="con-notes" value="' + escapeHtml(editing ? (editing.notes || '') : '') + '"></label>' +
+      '<div class="form-actions">' +
+      '<button type="submit" class="btn-primary">' + (editing ? 'Save changes' : 'Add contact') + '</button>' +
+      (editing ? ' <button type="button" class="btn-secondary" id="btn-cancel-edit-contact">Cancel</button>' : '') +
+      '</div></form>';
+
+    const byService = {};
+    contacts.forEach(function (c) { (byService[c.role || '(No service set)'] = byService[c.role || '(No service set)'] || []).push(c); });
+    const serviceKeys = Object.keys(byService).sort();
+
+    if (!serviceKeys.length) {
+      html += '<p class="muted">No contacts added yet.</p>';
+    } else {
+      serviceKeys.forEach(function (service) {
+        html += '<h3>' + escapeHtml(service) + '</h3>';
+        const rows = byService[service].map(function (c) {
+          return '<tr>' +
+            '<td>' + escapeHtml(c.name) + '</td>' +
+            '<td>' + escapeHtml(c.phone || '') + '</td>' +
+            '<td>' + escapeHtml(c.notes || '') + '</td>' +
+            '<td class="row-actions">' +
+            '<button class="btn-small" data-edit-contact="' + c.id + '">Edit</button>' +
+            '<button class="btn-small btn-danger" data-delete-contact="' + c.id + '">Delete</button>' +
+            '</td></tr>';
+        }).join('');
+        html += '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Notes</th><th></th></tr></thead>' +
+          '<tbody>' + rows + '</tbody></table></div>';
+      });
+    }
+
+    document.getElementById('tab-content').innerHTML = html;
 
     document.getElementById('form-contact').addEventListener('submit', async function (ev) {
       ev.preventDefault();
       const name = document.getElementById('con-name').value.trim();
       if (!name) return;
-      const contact = {
+      const payload = {
+        id: editing ? editing.id : undefined,
         name: name,
         role: document.getElementById('con-role').value.trim(),
         phone: document.getElementById('con-phone').value.trim(),
         notes: document.getElementById('con-notes').value.trim()
       };
       try {
-        const result = await Api.call('saveContact', { contact: contact });
-        contacts.push(Object.assign({}, contact, { id: result.id }));
-        App.showToast('Contact added.');
+        const result = await Api.call('saveContact', { contact: payload });
+        if (editing) {
+          Object.assign(editing, payload);
+          App.showToast('Contact updated.');
+        } else {
+          contacts.push(Object.assign({}, payload, { id: result.id }));
+          App.showToast('Contact added.');
+        }
+        editingContactId = null;
         renderContacts();
       } catch (err) { App.showError(err.message); }
+    });
+
+    if (editing) {
+      document.getElementById('btn-cancel-edit-contact').addEventListener('click', function () {
+        editingContactId = null;
+        renderContacts();
+      });
+    }
+
+    root().querySelectorAll('[data-edit-contact]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        editingContactId = btn.getAttribute('data-edit-contact');
+        renderContacts();
+      });
     });
 
     root().querySelectorAll('[data-delete-contact]').forEach(function (btn) {
