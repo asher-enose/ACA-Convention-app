@@ -1237,6 +1237,50 @@ function importChosenGenerationTeam() {
   );
 }
 
+// Adds the Shalom Team (6 people), led by Bro. Gladson L S. Source sheet
+// had no day/session breakdown at all — just "Food Serving" per person —
+// so per the user's confirmation, everyone is registered for MEALS across
+// every session, all 5 days (Aug 12-16). Additive — safe to re-run.
+function importShalomTeam() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var teams = [
+    ['team-shalom', 'Shalom Team', 'Bro. Gladson L S', '2026-08-11']
+  ];
+
+  var members = [
+    ['SHA-01', 'team-shalom', 'Sis. Jayanthi Joseph', '9551947711', 'F', '', '2026-08-11'],
+    ['SHA-02', 'team-shalom', 'Sis. Maria Jebadoss', '9786655980', 'F', '', '2026-08-11'],
+    ['SHA-03', 'team-shalom', 'Sis. Jenifer (+2 unnamed)', '8248110229', 'F', '', '2026-08-11'],
+    ['SHA-04', 'team-shalom', 'Sis. Rupavathi (+2 unnamed)', '8637695788', 'F', '', '2026-08-11'],
+    ['SHA-05', 'team-shalom', 'Sis. Stella Francis', '9940361558', 'F', '', '2026-08-11'],
+    ['SHA-06', 'team-shalom', 'Bro. Francis', '9941641677', 'M', '', '2026-08-11']
+  ];
+
+  var ALL_SESSIONS = [
+    'D0-MOR', 'D0-AFT', 'D1-EVE',
+    'D2-MOR', 'D2-AFT', 'D2-EVE',
+    'D3-MOR', 'D3-AFT', 'D3-EVE',
+    'D4-MOR', 'D4-AFT', 'D4-EVE'
+  ];
+
+  var availability = [];
+  members.forEach(function (m) {
+    ALL_SESSIONS.forEach(function (sessionId) { availability.push([m[0], sessionId, 'MEALS']); });
+  });
+
+  var teamsResult = appendMissing_(ss, 'Teams', [0], teams);
+  var membersResult = appendMissing_(ss, 'Members', [0], members);
+  var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
+
+  SpreadsheetApp.getUi().alert(
+    'Shalom Team import complete (existing rows left untouched):\n' +
+    'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
+    'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
+    'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there'
+  );
+}
+
 // Appends only the rows whose key (the values at keyCols) isn't already
 // present in the sheet. Never clears or modifies an existing row.
 function appendMissing_(ss, sheetName, keyCols, rows) {
