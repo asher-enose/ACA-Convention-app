@@ -1,11 +1,9 @@
 const ControlRoom = (function () {
   let teams = [];
-  let memberCount = 0;
   let serviceNeeds = [];
   let assignments = [];
   let incidents = [];
   let contacts = [];
-  let attendance = [];
   let activeTab = 'dashboard';
   let selectedSessionId = null;
   let editingContactId = null;
@@ -20,12 +18,10 @@ const ControlRoom = (function () {
   async function loadData() {
     const data = await Api.call('controlRoomBootstrap', {});
     teams = data.teams;
-    memberCount = data.memberCount || 0;
     serviceNeeds = data.serviceNeeds;
     assignments = data.assignments;
     incidents = data.incidents || [];
     contacts = data.contacts || [];
-    attendance = data.attendance || [];
   }
 
   function root() { return document.getElementById('app'); }
@@ -86,17 +82,9 @@ const ControlRoom = (function () {
   function renderDashboard() {
     const openIssues = incidents.filter(function (i) { return i.status !== 'resolved'; })
       .sort(function (a, b) { return priorityWeight_(b.priority) - priorityWeight_(a.priority) || new Date(b.createdAt || 0) - new Date(a.createdAt || 0); });
-    const activeCount = attendance.filter(function (a) { return a.status === 'in'; }).length;
     const session = sessionById(selectedSessionId) || SESSIONS[0];
 
-    let html =
-      '<div class="stat-row">' +
-      '<div class="stat"><div class="stat-num">' + memberCount + '</div><div class="stat-label">Volunteers registered</div></div>' +
-      '<div class="stat"><div class="stat-num">' + activeCount + '</div><div class="stat-label">Currently signed in</div></div>' +
-      '<div class="stat"><div class="stat-num">' + openIssues.length + '</div><div class="stat-label">Open issues</div></div>' +
-      '</div>';
-
-    html += '<h3>Open issues <span class="muted">— sorted by priority</span></h3>';
+    let html = '<h3>Open issues <span class="muted">— ' + openIssues.length + ', sorted by priority</span></h3>';
     html += openIssues.length
       ? openIssues.map(function (i) { return incidentRow_(i); }).join('')
       : '<p class="muted">No open issues.</p>';

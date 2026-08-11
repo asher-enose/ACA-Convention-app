@@ -169,20 +169,16 @@ function bootstrap() {
   };
 }
 
-// Control Room never needs individual member details (name/phone/
-// availability) -- just a headcount for the stat tile -- so this skips
-// reading Members and Availability entirely (the two largest sheets) and
-// uses a row-count instead of a full read for the count. Meaningfully
-// faster than bootstrap() once those sheets have hundreds/thousands of
-// rows, since Control Room is the screen people keep open and reload most
-// during the event.
+// Control Room only needs Issues (Incidents) and Contacts, plus enough of
+// Teams/ServiceNeeds/Assignments to show the coverage board -- it never
+// touches Members, Availability, or Attendance, so those sheets (the
+// largest ones) aren't read at all here. Meaningfully faster than
+// bootstrap() as those sheets grow, since Control Room is the screen
+// people keep open and reload most during the event.
 function controlRoomBootstrap() {
   var teams = sheetToObjects('Teams').map(function (t) {
     return { id: t.TeamId, name: t.TeamName, leaderName: t.LeaderName };
   });
-
-  var membersSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Members');
-  var memberCount = Math.max(0, membersSheet.getLastRow() - 1);
 
   var serviceNeeds = sheetToObjects('ServiceNeeds').map(function (n) {
     return { sessionId: n.SessionId, serviceId: n.ServiceId, requiredCount: Number(n.RequiredCount) || 0 };
@@ -203,14 +199,7 @@ function controlRoomBootstrap() {
     return { id: c.ContactId, name: c.Name, role: c.Role, phone: c.Phone, notes: c.Notes };
   });
 
-  var attendance = sheetToObjects('Attendance').map(function (a) {
-    return { id: a.AttendanceId, name: a.Name, phone: a.Phone, department: a.Department, status: a.Status, signInAt: a.SignInAt, signOutAt: a.SignOutAt };
-  });
-
-  return {
-    teams: teams, memberCount: memberCount, serviceNeeds: serviceNeeds, assignments: assignments,
-    incidents: incidents, contacts: contacts, attendance: attendance
-  };
+  return { teams: teams, serviceNeeds: serviceNeeds, assignments: assignments, incidents: incidents, contacts: contacts };
 }
 
 function addTeam(teamName, leaderName) {
