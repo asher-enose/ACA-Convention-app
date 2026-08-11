@@ -37,7 +37,11 @@ function setupSheet() {
   if (def && def.getLastRow() === 0 && ss.getSheets().length > Object.keys(SHEETS).length) {
     ss.deleteSheet(def);
   }
-  SpreadsheetApp.getUi().alert('Setup complete. Next: deploy as a Web App.');
+  try {
+    SpreadsheetApp.getUi().alert('Setup complete. Next: deploy as a Web App.');
+  } catch (err) {
+    Logger.log('Setup complete. Next: deploy as a Web App.');
+  }
 }
 
 // ---- HTTP entry points -----------------------------------------------

@@ -951,7 +951,7 @@ function bulkImportFoodServingVolunteers() {
   var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
   var needsResult = appendMissing_(ss, 'ServiceNeeds', [0, 1], serviceNeeds);
 
-  SpreadsheetApp.getUi().alert(
+  notify_(
     'Import complete (existing rows left untouched):\n' +
     'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
     'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
@@ -1047,7 +1047,7 @@ function importBroPrasadTeam() {
   var membersResult = appendMissing_(ss, 'Members', [0], members);
   var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
 
-  SpreadsheetApp.getUi().alert(
+  notify_(
     "Bro. Prasad's Team import complete (existing rows left untouched):\n" +
     'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
     'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
@@ -1116,7 +1116,7 @@ function importLivingHopeTeam() {
   var membersResult = appendMissing_(ss, 'Members', [0], members);
   var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
 
-  SpreadsheetApp.getUi().alert(
+  notify_(
     'Living Hope Team import complete (existing rows left untouched):\n' +
     'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
     'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
@@ -1165,7 +1165,7 @@ function importBalanTeamMembers() {
   var membersResult = appendMissing_(ss, 'Members', [0], members);
   var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
 
-  SpreadsheetApp.getUi().alert(
+  notify_(
     'Balan Team members import complete (existing rows left untouched):\n' +
     'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
     'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there'
@@ -1229,7 +1229,7 @@ function importChosenGenerationTeam() {
   var membersResult = appendMissing_(ss, 'Members', [0], members);
   var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
 
-  SpreadsheetApp.getUi().alert(
+  notify_(
     'Chosen Generation import complete (existing rows left untouched):\n' +
     'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
     'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
@@ -1273,7 +1273,7 @@ function importShalomTeam() {
   var membersResult = appendMissing_(ss, 'Members', [0], members);
   var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
 
-  SpreadsheetApp.getUi().alert(
+  notify_(
     'Shalom Team import complete (existing rows left untouched):\n' +
     'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
     'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
@@ -1307,4 +1307,15 @@ function appendMissing_(ss, sheetName, keyCols, rows) {
 
 function keyOf_(row, keyCols) {
   return keyCols.map(function (c) { return row[c]; }).join('|');
+}
+
+// Shows a popup when run with a UI session attached (normal manual run from
+// the editor); otherwise falls back to the Execution Log so the import
+// itself never fails just because a summary message couldn't be shown.
+function notify_(message) {
+  try {
+    SpreadsheetApp.getUi().alert(message);
+  } catch (err) {
+    Logger.log(message);
+  }
 }
