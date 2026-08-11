@@ -51,10 +51,21 @@ function doGet(e) {
   return jsonOut({ ok: true, result: { status: 'Convention Volunteer API is running' } });
 }
 
+// Actions that change sheet data -- doPost bumps the shared version marker
+// after any of these succeed, so watchForUpdates() on the frontend can
+// detect "something changed" with one cheap call instead of re-fetching
+// everything on a timer. Read-only actions (bootstrap, lookups, etc.)
+// aren't listed since nothing changed for anyone else to notice.
+var MUTATING_ACTIONS = [
+  'addTeam', 'saveMember', 'deleteMember', 'saveServiceNeeds', 'saveAssignments',
+  'saveIncident', 'saveContact', 'deleteContact', 'signIn', 'signOut'
+];
+
 function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents);
     var result = route(body.action, body);
+    if (MUTATING_ACTIONS.indexOf(body.action) !== -1) touchVersion_();
     return jsonOut({ ok: true, result: result });
   } catch (err) {
     return jsonOut({ ok: false, error: err.message });
@@ -63,6 +74,14 @@ function doPost(e) {
 
 function jsonOut(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function touchVersion_() {
+  PropertiesService.getScriptProperties().setProperty('DATA_VERSION', String(new Date().getTime()));
+}
+
+function checkVersion() {
+  return { version: PropertiesService.getScriptProperties().getProperty('DATA_VERSION') || '' };
 }
 
 function route(action, body) {
@@ -80,6 +99,7 @@ function route(action, body) {
     case 'signIn': return signIn(body.name, body.phone, body.department);
     case 'signOut': return signOut(body.id);
     case 'attendanceBootstrap': return attendanceBootstrap();
+    case 'checkVersion': return checkVersion();
     default: throw new Error('Unknown action: ' + action);
   }
 }

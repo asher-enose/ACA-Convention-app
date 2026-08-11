@@ -8,14 +8,24 @@ const Attendance = (function () {
   async function start() {
     root().innerHTML = '<div class="screen"><p class="muted">Loading…</p></div>';
     try {
-      const data = await Api.call('attendanceBootstrap', {});
-      names = data.names || [];
-      departments = data.departments || [];
-      records = data.attendance || [];
+      await loadData_();
       render();
+      App.setActiveWatcher(Api.watchForUpdates(function () {
+        App.showUpdateBanner(async function () {
+          await loadData_();
+          render();
+        });
+      }, 20000));
     } catch (err) {
       root().innerHTML = '<div class="screen"><p class="warning">' + escapeHtml(err.message) + '</p></div>';
     }
+  }
+
+  async function loadData_() {
+    const data = await Api.call('attendanceBootstrap', {});
+    names = data.names || [];
+    departments = data.departments || [];
+    records = data.attendance || [];
   }
 
   function render() {

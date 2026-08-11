@@ -15,6 +15,12 @@ const ControlRoom = (function () {
     activeTab = 'dashboard';
     selectedSessionId = currentSessionId();
     render();
+    App.setActiveWatcher(Api.watchForUpdates(function () {
+      App.showUpdateBanner(async function () {
+        await loadData();
+        render();
+      });
+    }, 20000));
   }
 
   async function loadData() {

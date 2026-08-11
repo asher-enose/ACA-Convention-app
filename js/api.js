@@ -17,5 +17,33 @@ const Api = {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Request failed');
     return data.result;
+  },
+
+  // Polls a cheap "has anything changed" signal (bumped server-side by
+  // every save/delete action) rather than re-fetching full data on a
+  // timer. Calls onChanged() the first time the version differs from
+  // what was current when watching started. Returns a stop() function.
+  // Silently ignores network errors on individual polls -- a flaky
+  // connection shouldn't spam the user, it'll just catch up next poll.
+  watchForUpdates(onChanged, intervalMs) {
+    let lastVersion = null;
+    let stopped = false;
+
+    const poll = async () => {
+      if (stopped) return;
+      try {
+        const result = await Api.call('checkVersion', {});
+        if (lastVersion === null) {
+          lastVersion = result.version;
+        } else if (result.version && result.version !== lastVersion) {
+          lastVersion = result.version;
+          onChanged();
+        }
+      } catch (err) { /* transient network issue -- try again next poll */ }
+      if (!stopped) setTimeout(poll, intervalMs || 20000);
+    };
+    poll();
+
+    return function stop() { stopped = true; };
   }
 };
