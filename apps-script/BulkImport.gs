@@ -1055,6 +1055,75 @@ function importBroPrasadTeam() {
   );
 }
 
+// Adds the Living Hope Team (14 people), led by Ranjan Nesakumar.
+// "Lunch serving" -> MEALS on that day's Lunch (AFT) session specifically.
+// "Volunteer" -> CROWD (Crowd Management) across all three meal-sessions
+// of that day, since it's a generic duty rather than a meal-specific one —
+// same convention used for Charles's "fire safety" in Bro. Prasad's team.
+// Additive only — safe to re-run.
+function importLivingHopeTeam() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var teams = [
+    ['team-livinghope', 'Living Hope Team', 'Ranjan Nesakumar', '2026-08-11']
+  ];
+
+  var members = [
+    ['LH-01', 'team-livinghope', 'Ranjan Nesakumar', '6385038120', '', '', '2026-08-11'],
+    ['LH-02', 'team-livinghope', 'Pearlin Sheila', '9965016616', '', '', '2026-08-11'],
+    ['LH-03', 'team-livinghope', 'Ramanan', '8946046684', '', '', '2026-08-11'],
+    ['LH-04', 'team-livinghope', 'Rathnakumari', '7010317745', '', '', '2026-08-11'],
+    ['LH-05', 'team-livinghope', 'Baiju Micheal', '9952111617', '', '', '2026-08-11'],
+    ['LH-06', 'team-livinghope', 'Selvi', '8056277338', '', '', '2026-08-11'],
+    ['LH-07', 'team-livinghope', 'Sweety', '7358186338', '', '', '2026-08-11'],
+    ['LH-08', 'team-livinghope', 'Rahul', '8438025338', '', '', '2026-08-11'],
+    ['LH-09', 'team-livinghope', 'Yogeshwaran', '6381855817', '', '', '2026-08-11'],
+    ['LH-10', 'team-livinghope', 'Jackson', '', '', '', '2026-08-11'],
+    ['LH-11', 'team-livinghope', 'David Kandhasamy', '9003069656', '', '', '2026-08-11'],
+    ['LH-12', 'team-livinghope', 'Suzanna', '9994806963', '', '', '2026-08-11'],
+    ['LH-13', 'team-livinghope', 'Sangeetha', '9944953239', '', '', '2026-08-11'],
+    ['LH-14', 'team-livinghope', 'Madhanraj', '9655518773', '', '', '2026-08-11']
+  ];
+
+  var DED_V = [['D1-EVE', 'CROWD']];
+  var D14_V = [['D2-MOR', 'CROWD'], ['D2-AFT', 'CROWD'], ['D2-EVE', 'CROWD']];
+  var D15_LUNCH = [['D3-AFT', 'MEALS']];
+  var D16_V = [['D4-MOR', 'CROWD'], ['D4-AFT', 'CROWD'], ['D4-EVE', 'CROWD']];
+
+  var plan = [
+    ['LH-01', DED_V.concat(D14_V, D15_LUNCH, D16_V)],
+    ['LH-02', DED_V.concat(D14_V, D15_LUNCH, D16_V)],
+    ['LH-03', D14_V.concat(D15_LUNCH, D16_V)],
+    ['LH-04', D14_V.concat(D15_LUNCH, D16_V)],
+    ['LH-05', D14_V.concat(D15_LUNCH, D16_V)],
+    ['LH-06', D14_V.concat(D15_LUNCH, D16_V)],
+    ['LH-07', D14_V.concat(D15_LUNCH, D16_V)],
+    ['LH-08', D14_V.concat(D15_LUNCH, D16_V)],
+    ['LH-09', D14_V.concat(D15_LUNCH, D16_V)],
+    ['LH-10', D14_V.concat(D15_LUNCH, D16_V)],
+    ['LH-11', D15_LUNCH],
+    ['LH-12', D15_LUNCH],
+    ['LH-13', D15_LUNCH],
+    ['LH-14', D15_LUNCH]
+  ];
+
+  var availability = [];
+  plan.forEach(function (p) {
+    p[1].forEach(function (pair) { availability.push([p[0], pair[0], pair[1]]); });
+  });
+
+  var teamsResult = appendMissing_(ss, 'Teams', [0], teams);
+  var membersResult = appendMissing_(ss, 'Members', [0], members);
+  var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
+
+  SpreadsheetApp.getUi().alert(
+    'Living Hope Team import complete (existing rows left untouched):\n' +
+    'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
+    'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
+    'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there'
+  );
+}
+
 // Appends only the rows whose key (the values at keyCols) isn't already
 // present in the sheet. Never clears or modifies an existing row.
 function appendMissing_(ss, sheetName, keyCols, rows) {
