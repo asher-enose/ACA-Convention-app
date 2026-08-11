@@ -97,7 +97,9 @@ const ControlRoom = (function () {
       '</div>';
 
     html += '<h3>Open issues <span class="muted">— sorted by priority</span></h3>';
-    html += '<div class="table-wrap"><table><thead><tr><th>What</th><th>Location</th><th>Reported by</th><th>Priority</th><th>Assigned to</th><th>Status</th><th></th></tr></thead>' +
+    html += '<div class="table-wrap"><table class="fixed-table"><colgroup>' +
+      '<col style="width:26%"><col style="width:14%"><col style="width:14%"><col style="width:12%"><col style="width:20%"><col style="width:8%"><col style="width:6%">' +
+      '</colgroup><thead><tr><th>What</th><th>Location</th><th>Reported by</th><th>Priority</th><th>Assigned to</th><th>Status</th><th></th></tr></thead>' +
       '<tbody>' + (openIssues.map(function (i) { return incidentRow_(i); }).join('') || '<tr><td colspan="7" class="muted">No open issues.</td></tr>') + '</tbody></table></div>';
 
     html += '<div class="form" style="max-width:360px;margin:16px 0;"><label>Session<select id="cr-session">' +
@@ -149,7 +151,9 @@ const ControlRoom = (function () {
       '<div class="form-actions"><button type="submit" class="btn-primary" id="btn-submit-incident">Log incident</button></div>' +
       '</form>' +
       '<h3>Incident log</h3>' +
-      '<div class="table-wrap"><table><thead><tr><th>What</th><th>Location</th><th>Reported by</th><th>Priority</th><th>Assigned to</th><th>Status</th><th></th></tr></thead>' +
+      '<div class="table-wrap"><table class="fixed-table"><colgroup>' +
+      '<col style="width:26%"><col style="width:14%"><col style="width:14%"><col style="width:12%"><col style="width:20%"><col style="width:8%"><col style="width:6%">' +
+      '</colgroup><thead><tr><th>What</th><th>Location</th><th>Reported by</th><th>Priority</th><th>Assigned to</th><th>Status</th><th></th></tr></thead>' +
       '<tbody>' + (rows || '<tr><td colspan="7" class="muted">No incidents logged.</td></tr>') + '</tbody></table></div>';
 
     bindIncidentForm_();
