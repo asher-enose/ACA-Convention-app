@@ -1539,6 +1539,139 @@ function importNithiyaKirubaiTeam() {
   );
 }
 
+// Adds every non-food department lead (Procurement through Good Samaritan)
+// plus the Food Team's per-day/per-meal session leaders into the Contacts
+// tab (Control Room > Contacts). Same person can legitimately appear more
+// than once with a different Role (e.g. someone leading both Traffic &
+// Parking and Cleaning, or a Food Team leader covering several sessions) --
+// that's intentional, not a duplicate. Additive -- safe to re-run (keyed by
+// ContactId, which is always freshly generated here, so re-running just
+// adds nothing new rather than erroring -- delete rows in the sheet by hand
+// if you need to remove one).
+function importDepartmentContacts() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // [Name, Role, Phone, Notes]
+  var rows = [
+    ['Bro. Prasath', 'Procurement', '9445720628', ''],
+    ['Bro. Ezekiel', 'Procurement', '9884453858', ''],
+
+    ['Bro. Stanly', 'Accommodation', '924923131', 'Phone has only 9 digits in source -- verify'],
+    ['Pas. Sidhaiah', 'Accommodation', '9094249379', ''],
+
+    ['Pas. Nelson', 'Welcome', '9444703418', ''],
+    ['Pas. William Joel', 'Welcome', '9841866265', ''],
+    ['Pas. Samuel Edison', 'Welcome', '9940499997', ''],
+    ['Pas. Vaseegaran', 'Welcome', '9940448931', ''],
+    ['Pas. Srinath', 'Welcome', '', ''],
+    ['Pas. Abel', 'Welcome', '', ''],
+    ['Bro. Tony', 'Welcome', '7708610221', ''],
+    ['Bro. Prasan', 'Welcome', '9840060772', ''],
+    ['Bro. Arunkumar', 'Welcome', '9791033787', ''],
+
+    ['Bro. Mahadevan', 'Traffic & Parking', '9884071366', ''],
+    ['Bro. Charles', 'Traffic & Parking', '9444940910', ''],
+    ['Bro. Johnson', 'Traffic & Parking', '9941224973', ''],
+
+    ['Bro. Balan', 'Transportation', '9345136258', ''],
+    ['Bro. Sukumar', 'Transportation', '9840371981', ''],
+
+    ['Bro. Annamalai', 'Floor Manager -- Floor 1', '9789869321', ''],
+    ['Mrs. Annamalai', 'Floor Manager -- Floor 1', '', 'Spouse of Bro. Annamalai'],
+    ['Bro. Franklin', 'Floor Manager -- Floor 2', '6382789296', ''],
+    ['Mrs. Franklin', 'Floor Manager -- Floor 2', '', 'Spouse of Bro. Franklin'],
+    ['Bro. Thomas', 'Floor Manager -- Floor 3', '8838617701', ''],
+    ['Mrs. Thomas', 'Floor Manager -- Floor 3', '', 'Spouse of Bro. Thomas'],
+
+    ['Bro. Bhaskar', 'Lift & Staircase', '9444949098', ''],
+    ['Bro. Anandraj', 'Lift & Staircase', '8610127300', ''],
+
+    ['Bro. David', 'Crowd Management & Seating', '9789098832', "Ezekiel's Brother"],
+    ['Bro. Prabhakar', 'Crowd Management & Seating', '9840215001', ''],
+    ['Sis. Sujatha Elisha', 'Crowd Management & Seating', '9677153016', ''],
+
+    ['Bro. Ramachandran', 'Cleaning', '9445250484', ''],
+    ['Bro. Mahadevan', 'Cleaning', '9884071366', ''],
+
+    ['Sis. Hannah Gabriel', 'Backstage VIP Hospitality', '9382317774', ''],
+    ['Sis. Priscilla Charles', 'Backstage VIP Hospitality', '9444088388', ''],
+    ['Sis. Megomi Prasath', 'Backstage VIP Hospitality', '9444899450', ''],
+    ['Sis. Blessy Edison', 'Backstage VIP Hospitality', '8072175707', ''],
+
+    ['Bro. Philip', "Founders' Family & Pastors' Hospitality", '9940256250', ''],
+    ['Sis. Manju', "Founders' Family & Pastors' Hospitality", '', ''],
+    ['Sis. Sujatha', "Founders' Family & Pastors' Hospitality", '9940068812', 'Impact'],
+
+    ['Bro. Prasath', 'VIP Hospitality -- New Impact Tuition Centre', '9445720628', ''],
+    ['Pas. William Joel', 'VIP Hospitality -- New Impact Tuition Centre', '9841866265', ''],
+    ['Pas. Samuel Edison', 'VIP Hospitality -- New Impact Tuition Centre', '9940499997', ''],
+    ['Bro. Daniel', 'VIP Hospitality -- New Impact Tuition Centre', '', "Dr. Srinivasan's Son"],
+    ['Bro. Christopher', 'VIP Hospitality -- New Impact Tuition Centre', '', ''],
+    ['Bro. Nelson', 'VIP Hospitality -- New Impact Tuition Centre', '', ''],
+
+    ['Bro. David Paul', 'Control Room', '9840875815', ''],
+    ['Pas. William Joel', 'Control Room', '9841866265', ''],
+
+    ['Bro. Ebenezer Paul', 'Media, Choir & Musicians', '9445095097', ''],
+    ['Pas. Clement Titus', 'Media, Choir & Musicians', '9092775840', ''],
+
+    ['Sis. Rachel Stephen', 'Sunday School', '9710271776', ''],
+    ['Sis. Suganthi', 'Sunday School', '9445450804 / 9498327077', ''],
+
+    ['Sis. Angeline Fredrick', 'Youth & Teens Sessions', '', ''],
+    ['Bro. Tony', 'Youth & Teens Sessions', '7708610221', ''],
+    ['Bro. Prasan', 'Youth & Teens Sessions', '9840060772', ''],
+    ['Pas. William Joel', 'Youth & Teens Sessions', '9841866265', ''],
+
+    ['Bro. Swarna Kumar', 'Good Samaritan (Emergency Medical)', '9551159386', ''],
+    ['Pas. Anthony', 'Good Samaritan (Emergency Medical)', '9941942911', ''],
+
+    ['Bro. Wilson', 'Food Team Leader -- Aug 13 Dinner', '8754530802', 'Mrs. Wilson (FF)'],
+    ['Bro. Nandhakumar', 'Food Team Leader -- Aug 13 Dinner', '7871458400', 'Mrs. Nandhakumar (FF)'],
+    ['Bro. Ranjan', 'Food Team Leader -- Aug 13 Dinner', '9677127121', 'Mrs. Ranjan (FF)'],
+    ['Bro. David', 'Food Team Leader -- Aug 13 Dinner', '9382333966', 'Mrs. David (FF)'],
+    ['Bro. Robinson', 'Food Team Leader -- Aug 13 Dinner', '9080007611', 'Sis. Robinson (FF)'],
+    ['Bro. Senthil', 'Food Team Leader -- Aug 13 Dinner', '9444973976', 'Mrs. Senthil (FF)'],
+
+    ['Bro. Asher', 'Food Team Leader -- Aug 14 Breakfast', '9841808068', 'Mrs. Asher'],
+    ['Bro. John Paul', 'Food Team Leader -- Aug 14 Breakfast', '9363568729', 'Phone listed under Mrs. John Paul in source'],
+
+    ['Bro. Abraham', 'Food Team Leader -- Aug 14 Dinner', '7395932727', 'Mrs. Abraham'],
+    ['Bro. Gladson', 'Food Team Leader -- Aug 14 Dinner', '9080411293', 'Mrs. Gladson'],
+
+    ['Bro. Ranjan', 'Food Team Leader -- Aug 15 Breakfast', '9677127121', 'Mrs. Ranjan (FF)'],
+    ['Bro. Robinson', 'Food Team Leader -- Aug 15 Breakfast', '9080007611', 'Mrs. Robinson (FF)'],
+
+    ['Bro. Nandhakumar', 'Food Team Leader -- Aug 15 Lunch', '7871458400', 'Mrs. Nandhakumar (FF)'],
+    ['Bro. Ranjan', 'Food Team Leader -- Aug 15 Lunch', '9677127121', 'Mrs. Ranjan (FF)'],
+
+    ['Bro. Bhaskar', 'Food Team Leader -- Aug 15 Dinner', '9444949098', 'Mrs. Bhaskar'],
+    ['Bro. Victor Robinson', 'Food Team Leader -- Aug 15 Dinner', '9444227174', 'Mrs. Victor Robinson'],
+
+    ['Bro. Wilson', 'Food Team Leader -- Aug 16 Breakfast', '8754530802', 'Mrs. Wilson (FF)'],
+    ['Bro. Asher', 'Food Team Leader -- Aug 16 Breakfast', '9841808068', 'Mrs. Asher'],
+
+    ['Bro. David', 'Food Team Leader -- Aug 16 Lunch', '9382333966', 'Mrs. David (FF)'],
+    ['Bro. Anandaraj', 'Food Team Leader -- Aug 16 Lunch', '8610127300', 'Mrs. Anandaraj'],
+
+    ['Bro. David', 'Food Team Leader -- Aug 16 Dinner', '9382333966', 'Mrs. David (FF)'],
+    ['Bro. Nandhakumar', 'Food Team Leader -- Aug 16 Dinner', '7871458400', 'Mrs. Nandhakumar (FF)']
+  ];
+
+  var contacts = rows.map(function (r, i) {
+    var num = ('000' + (i + 1)).slice(-3);
+    return ['DEPT-' + num, r[0], r[1], r[2], r[3], '2026-08-11'];
+  });
+
+  var contactsResult = appendMissing_(ss, 'Contacts', [0], contacts);
+
+  notify_(
+    'Department contacts import complete:\n' +
+    'Contacts: ' + contactsResult.added + ' added, ' + contactsResult.skipped + ' already there\n' +
+    'Note: Bro. Stanly\'s Accommodation phone (924923131) has only 9 digits -- verify with him.'
+  );
+}
+
 // Appends only the rows whose key (the values at keyCols) isn't already
 // present in the sheet. Never clears or modifies an existing row.
 function appendMissing_(ss, sheetName, keyCols, rows) {
