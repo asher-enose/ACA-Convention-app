@@ -64,7 +64,7 @@ const ControlRoom = (function () {
       '<button class="link-back" id="btn-home">&larr; Home</button>' +
       '<h2>Control Room</h2>' +
       '<div class="tabs">' +
-      tabBtn('dashboard', 'Dashboard') + tabBtn('incidents', 'Incidents') + tabBtn('attendance', 'Attendance') + tabBtn('contacts', 'Contacts') +
+      tabBtn('dashboard', 'Dashboard') + tabBtn('incidents', 'Incidents') + tabBtn('contacts', 'Contacts') +
       '</div>' +
       '<div id="tab-content"></div>' +
       '</div>';
@@ -73,7 +73,6 @@ const ControlRoom = (function () {
       btn.addEventListener('click', function () { activeTab = btn.getAttribute('data-tab'); render(); });
     });
     if (activeTab === 'incidents') renderIncidents();
-    else if (activeTab === 'attendance') renderAttendance();
     else if (activeTab === 'contacts') renderContacts();
     else renderDashboard();
   }
@@ -165,7 +164,10 @@ const ControlRoom = (function () {
       '<td>' + escapeHtml(i.reportedBy || '') + '</td>' +
       '<td><select data-priority-for="' + i.id + '">' + PRIORITIES.map(function (p) { return '<option value="' + p + '"' + (p === (i.priority || 'Medium') ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></td>' +
       '<td><select data-assign-for="' + i.id + '"><option value=""' + (!i.assignedTo ? ' selected' : '') + '>Unassigned</option>' +
-      contacts.map(function (c) { return '<option value="' + escapeHtml(c.name) + '"' + (c.name === i.assignedTo ? ' selected' : '') + '>' + escapeHtml(c.name) + '</option>'; }).join('') +
+      contacts.map(function (c) {
+        const label = (c.role ? c.role + ' — ' : '') + c.name;
+        return '<option value="' + escapeHtml(c.name) + '"' + (c.name === i.assignedTo ? ' selected' : '') + '>' + escapeHtml(label) + '</option>';
+      }).join('') +
       '</select></td>' +
       '<td><span class="' + (resolved ? 'success' : 'warning') + '">' + (resolved ? 'CLOSED' : 'OPEN') + '</span></td>' +
       '<td><button class="btn-small" data-toggle-incident="' + i.id + '">' + (resolved ? 'Reopen' : 'Close') + '</button></td>' +
@@ -231,117 +233,6 @@ const ControlRoom = (function () {
         } catch (err) { App.showError(err.message); }
       });
     });
-  }
-
-  // ---- attendance ------------------------------------------------------
-  // One row per person (matched by name+phone); sign-in updates that same
-  // row rather than piling up history, so "currently active" is always
-  // just a Status === 'in' filter.
-
-  function renderAttendance() {
-    const active = attendance.filter(function (a) { return a.status === 'in'; })
-      .sort(function (a, b) { return new Date(b.signInAt || 0) - new Date(a.signInAt || 0); });
-    const recentlyOut = attendance.filter(function (a) { return a.status !== 'in'; })
-      .sort(function (a, b) { return new Date(b.signOutAt || 0) - new Date(a.signOutAt || 0); })
-      .slice(0, 20);
-
-    const knownNames = Array.from(new Set(
-      members.map(function (m) { return m.name; }).concat(contacts.map(function (c) { return c.name; }))
-    )).filter(Boolean).sort();
-
-    let html =
-      '<h3>Sign in / Sign out</h3>' +
-      '<p class="muted">Type your name (and phone if someone else shares your name) and tap Sign In when you arrive, Sign Out when you leave.</p>' +
-      '<form id="form-attendance" class="form" style="max-width:420px;">' +
-      '<label>Name<input type="text" id="att-name" list="attendance-name-options" required></label>' +
-      '<datalist id="attendance-name-options">' + knownNames.map(function (n) { return '<option value="' + escapeHtml(n) + '">'; }).join('') + '</datalist>' +
-      '<label>Phone (optional)<input type="tel" id="att-phone"></label>' +
-      '<div class="form-actions">' +
-      '<button type="submit" class="btn-primary" id="btn-sign-in">Sign In</button> ' +
-      '<button type="button" class="btn-secondary" id="btn-sign-out">Sign Out</button>' +
-      '</div></form>' +
-
-      '<h3>Currently signed in <span class="muted">— ' + active.length + '</span></h3>' +
-      '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Signed in</th><th></th></tr></thead>' +
-      '<tbody>' + (active.map(function (a) {
-        return '<tr><td>' + escapeHtml(a.name) + '</td><td>' + escapeHtml(a.phone || '') + '</td>' +
-          '<td>' + formatTime_(a.signInAt) + '</td>' +
-          '<td><button class="btn-small" data-attendance-signout="' + a.id + '">Sign Out</button></td></tr>';
-      }).join('') || '<tr><td colspan="4" class="muted">No one signed in yet.</td></tr>') + '</tbody></table></div>';
-
-    if (recentlyOut.length) {
-      html += '<h3>Recently signed out</h3>' +
-        '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Signed out</th></tr></thead>' +
-        '<tbody>' + recentlyOut.map(function (a) {
-          return '<tr><td>' + escapeHtml(a.name) + '</td><td>' + escapeHtml(a.phone || '') + '</td><td>' + formatTime_(a.signOutAt) + '</td></tr>';
-        }).join('') + '</tbody></table></div>';
-    }
-
-    document.getElementById('tab-content').innerHTML = html;
-
-    document.getElementById('form-attendance').addEventListener('submit', async function (ev) {
-      ev.preventDefault();
-      await signInFromForm_();
-    });
-    document.getElementById('btn-sign-out').addEventListener('click', async function () {
-      await signOutFromForm_();
-    });
-
-    root().querySelectorAll('[data-attendance-signout]').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        const id = btn.getAttribute('data-attendance-signout');
-        try {
-          const result = await Api.call('signOut', { id: id });
-          const rec = attendance.find(function (a) { return a.id === id; });
-          rec.status = 'out';
-          rec.signOutAt = result.signOutAt;
-          App.showToast('Signed out.');
-          renderAttendance();
-        } catch (err) { App.showError(err.message); }
-      });
-    });
-  }
-
-  async function signInFromForm_() {
-    const name = document.getElementById('att-name').value.trim();
-    if (!name) return;
-    const phone = document.getElementById('att-phone').value.trim();
-    try {
-      const result = await Api.call('signIn', { name: name, phone: phone });
-      const existing = attendance.find(function (a) { return a.id === result.id; });
-      if (existing) {
-        existing.status = 'in';
-        existing.signInAt = result.signInAt;
-      } else {
-        attendance.push({ id: result.id, name: name, phone: phone, status: 'in', signInAt: result.signInAt, signOutAt: '' });
-      }
-      App.showToast(name + ' signed in.');
-      renderAttendance();
-    } catch (err) { App.showError(err.message); }
-  }
-
-  async function signOutFromForm_() {
-    const name = document.getElementById('att-name').value.trim();
-    const phone = document.getElementById('att-phone').value.trim();
-    if (!name) return;
-    const rec = attendance.find(function (a) {
-      return a.name.trim().toLowerCase() === name.toLowerCase() && (a.phone || '') === phone;
-    });
-    if (!rec) { App.showError('No matching sign-in found for that name/phone.'); return; }
-    try {
-      const result = await Api.call('signOut', { id: rec.id });
-      rec.status = 'out';
-      rec.signOutAt = result.signOutAt;
-      App.showToast(name + ' signed out.');
-      renderAttendance();
-    } catch (err) { App.showError(err.message); }
-  }
-
-  function formatTime_(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return String(iso);
-    return d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
   // ---- contacts ------------------------------------------------------

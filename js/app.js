@@ -13,8 +13,8 @@ const App = (function () {
       '<strong>Organizer</strong><span>Set needs and build the roster</span></button>' +
       '<button class="btn-landing" id="btn-control-room">' +
       '<strong>Control Room</strong><span>Live coverage, incidents, key contacts</span></button>' +
-      '<button class="btn-landing" id="btn-member">' +
-      '<strong>Check my schedule</strong><span>Volunteers: see what you\'re assigned to</span></button>' +
+      '<button class="btn-landing" id="btn-attendance">' +
+      '<strong>Sign In / Sign Out</strong><span>Report when you arrive or leave</span></button>' +
       '</div>' +
       '<div id="banner"></div>' +
       '</div>';
@@ -22,7 +22,7 @@ const App = (function () {
     document.getElementById('btn-leader').addEventListener('click', function () { Leader.start(); });
     document.getElementById('btn-organizer').addEventListener('click', function () { Organizer.start(); });
     document.getElementById('btn-control-room').addEventListener('click', function () { ControlRoom.start(); });
-    document.getElementById('btn-member').addEventListener('click', function () { MemberLookup.start(); });
+    document.getElementById('btn-attendance').addEventListener('click', function () { Attendance.start(); });
   }
 
   function showToast(message, type) {

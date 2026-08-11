@@ -9,8 +9,8 @@ the roster. Volunteers can look up their own schedule.
 There's no traditional server — the site is plain HTML/CSS/JS (works on
 GitHub Pages) and reads/writes a Google Sheet through a small Google Apps
 Script Web App acting as the API. There's no passcode gate — anyone with the
-link can act as a leader or organizer; "Check my schedule" only reveals one
-person's own assignments (matched by name + phone).
+link can act as a leader or organizer, or sign themselves in/out for
+attendance.
 
 ## 1. Set up the Google Sheet + API
 
@@ -96,16 +96,17 @@ set the source to the `main` branch, root folder. Your site will be live at
     guess at the current one based on the clock), as a quick status
     board.
   - *Incidents* — log a problem as it happens (what, where, reported
-    by, priority); assign it to anyone in Contacts from a dropdown,
-    change its priority, or close/reopen it, all inline in the table.
-  - *Attendance* — anyone can sign themselves in or out by name (with
-    phone as a tiebreaker for shared names); shows who's currently
-    signed in and a short recent sign-out history.
+    by, priority); assign it to anyone in Contacts (shown as
+    "Department — Name" in the dropdown) or close/reopen it, all
+    inline in the table.
   - *Contacts* — a quick-reference list of key phone numbers (medical,
     security, coordinators) that anyone can add to or remove from.
-- **Check my schedule**: a volunteer enters their name and phone and sees
-  exactly what they've been assigned to, once the organizer has saved a
-  roster.
+- **Sign In / Sign Out**: on the home page, not nested under Control
+  Room — anyone can sign themselves in or out by name (phone as a
+  tiebreaker for shared names, department for who's from where). Shows
+  who's currently signed in and a short recent sign-out history.
+  Control Room's Dashboard shows a live "Currently signed in" count
+  pulled from the same data.
 
 ### Roster algorithms
 

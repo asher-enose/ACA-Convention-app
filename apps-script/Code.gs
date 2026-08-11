@@ -21,7 +21,7 @@ var SHEETS = {
   Assignments: ['AssignmentId', 'SessionId', 'ServiceId', 'TeamId', 'MemberId', 'BatchId', 'CreatedAt'],
   Incidents: ['IncidentId', 'Description', 'Location', 'ReportedBy', 'Status', 'Priority', 'AssignedTo', 'CreatedAt'],
   Contacts: ['ContactId', 'Name', 'Role', 'Phone', 'Notes', 'CreatedAt'],
-  Attendance: ['AttendanceId', 'Name', 'Phone', 'Status', 'SignInAt', 'SignOutAt']
+  Attendance: ['AttendanceId', 'Name', 'Phone', 'Department', 'Status', 'SignInAt', 'SignOutAt']
 };
 
 function setupSheet() {
@@ -77,8 +77,9 @@ function route(action, body) {
     case 'saveIncident': return saveIncident(body.incident);
     case 'saveContact': return saveContact(body.contact);
     case 'deleteContact': return deleteContact(body.contactId);
-    case 'signIn': return signIn(body.name, body.phone);
+    case 'signIn': return signIn(body.name, body.phone, body.department);
     case 'signOut': return signOut(body.id);
+    case 'attendanceBootstrap': return attendanceBootstrap();
     default: throw new Error('Unknown action: ' + action);
   }
 }
@@ -158,7 +159,7 @@ function bootstrap() {
   });
 
   var attendance = sheetToObjects('Attendance').map(function (a) {
-    return { id: a.AttendanceId, name: a.Name, phone: a.Phone, status: a.Status, signInAt: a.SignInAt, signOutAt: a.SignOutAt };
+    return { id: a.AttendanceId, name: a.Name, phone: a.Phone, department: a.Department, status: a.Status, signInAt: a.SignInAt, signOutAt: a.SignOutAt };
   });
 
   return {
@@ -342,14 +343,36 @@ function deleteContact(contactId) {
   return { deleted: true };
 }
 
+// Lightweight, public-facing data for the Attendance sign-in/out page --
+// name/department suggestions plus the current attendance list, not the
+// full dataset (matches how lookupMyAssignments avoids exposing everything
+// too).
+function attendanceBootstrap() {
+  var memberNames = sheetToObjects('Members').map(function (m) { return m.Name; });
+  var contactRows = sheetToObjects('Contacts');
+  var contactNames = contactRows.map(function (c) { return c.Name; });
+  var contactRoles = contactRows.map(function (c) { return c.Role; });
+  var teamNames = sheetToObjects('Teams').map(function (t) { return t.TeamName; });
+
+  var names = Array.from(new Set(memberNames.concat(contactNames))).filter(Boolean).sort();
+  var departments = Array.from(new Set(contactRoles.concat(teamNames))).filter(Boolean).sort();
+
+  var attendance = sheetToObjects('Attendance').map(function (a) {
+    return { id: a.AttendanceId, name: a.Name, phone: a.Phone, department: a.Department, status: a.Status, signInAt: a.SignInAt, signOutAt: a.SignOutAt };
+  });
+
+  return { names: names, departments: departments, attendance: attendance };
+}
+
 // One row per person, matched by name+phone (case-insensitive on name).
 // Signing in again just updates the same row rather than creating a new
 // one, so "who's currently active" is always a straight Status === 'in'
 // filter, not something that needs de-duping across repeat sign-ins.
-function signIn(name, phone) {
+function signIn(name, phone, department) {
   name = (name || '').trim();
   if (!name) throw new Error('Name is required');
   phone = (phone || '').trim();
+  department = (department || '').trim();
 
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Attendance');
   var values = sh.getDataRange().getValues();
@@ -358,13 +381,14 @@ function signIn(name, phone) {
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][1]).trim().toLowerCase() === name.toLowerCase() && String(values[i][2]).trim() === phone) {
       var id = values[i][0];
-      sh.getRange(i + 1, 1, 1, SHEETS.Attendance.length).setValues([[id, name, phone, 'in', now, values[i][5]]]);
+      var dept = department || values[i][3];
+      sh.getRange(i + 1, 1, 1, SHEETS.Attendance.length).setValues([[id, name, phone, dept, 'in', now, values[i][6]]]);
       return { id: id, status: 'in', signInAt: now.toISOString() };
     }
   }
 
   var newId = Utilities.getUuid();
-  appendRow('Attendance', { AttendanceId: newId, Name: name, Phone: phone, Status: 'in', SignInAt: now, SignOutAt: '' });
+  appendRow('Attendance', { AttendanceId: newId, Name: name, Phone: phone, Department: department, Status: 'in', SignInAt: now, SignOutAt: '' });
   return { id: newId, status: 'in', signInAt: now.toISOString() };
 }
 
@@ -375,7 +399,7 @@ function signOut(id) {
   var now = new Date();
   for (var i = 1; i < values.length; i++) {
     if (values[i][0] === id) {
-      sh.getRange(i + 1, 1, 1, SHEETS.Attendance.length).setValues([[id, values[i][1], values[i][2], 'out', values[i][4], now]]);
+      sh.getRange(i + 1, 1, 1, SHEETS.Attendance.length).setValues([[id, values[i][1], values[i][2], values[i][3], 'out', values[i][5], now]]);
       return { id: id, status: 'out', signOutAt: now.toISOString() };
     }
   }
