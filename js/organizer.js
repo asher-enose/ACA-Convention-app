@@ -251,15 +251,15 @@ const Organizer = (function () {
 
   function renderByTeamGroupedByName(teamMembers) {
     const rows = teamMembers.map(function (m) {
-      const sessionLabels = SESSIONS.filter(function (s) {
+      const sessionChips = SESSIONS.filter(function (s) {
         return (m.availability || []).some(function (a) { return a.sessionId === s.id; });
-      }).map(function (s) { return s.label; }).join(', ');
+      }).map(function (s) { return '<span class="chip">' + escapeHtml(s.label) + '</span>'; }).join('');
       return '<tr>' +
         '<td>' + escapeHtml(m.name) + '</td>' +
         '<td>' + escapeHtml(m.phone || '') + '</td>' +
         '<td>' + escapeHtml(m.sex || '') + '</td>' +
         '<td>' + escapeHtml(m.age || '') + '</td>' +
-        '<td>' + (sessionLabels || '<span class="muted">None yet</span>') + '</td>' +
+        '<td class="sessions-cell">' + (sessionChips ? '<div class="chip-row" style="margin-bottom:0;">' + sessionChips + '</div>' : '<span class="muted">None yet</span>') + '</td>' +
         '<td class="row-actions"><button class="btn-small" data-byteam-edit="' + m.id + '">Edit</button></td>' +
         '</tr>';
     }).join('');
