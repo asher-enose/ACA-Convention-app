@@ -1281,6 +1281,79 @@ function importShalomTeam() {
   );
 }
 
+// Adds the Cornerstone team (18 people), led by Bro. Johnson. Source sheet
+// gave an exact Breakfast/Lunch/Dinner x Aug14/15/16 grid per person, so
+// every availability row below is a direct "Yes" from that grid -- no
+// day-level guessing needed here. All MEALS (BF/Lunch/Dinner headers imply
+// meal serving). Additive -- safe to re-run.
+function importCornerstoneTeam() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var teams = [
+    ['team-cornerstone', 'Cornerstone', 'Bro. Johnson', '2026-08-11']
+  ];
+
+  var members = [
+    ['COR-01', 'team-cornerstone', 'Sis. Nalini', '9176277739', 'F', '', '2026-08-11'],
+    ['COR-02', 'team-cornerstone', 'Bro. Samuel', '9941906773', 'M', '', '2026-08-11'],
+    ['COR-03', 'team-cornerstone', 'Sis. Jeeva', '9941906773', 'F', '', '2026-08-11'],
+    ['COR-04', 'team-cornerstone', 'Sis. Jenifer', '9840424432', 'F', '', '2026-08-11'],
+    ['COR-05', 'team-cornerstone', 'Sis. Sofia', '9840424432', 'F', '', '2026-08-11'],
+    ['COR-06', 'team-cornerstone', 'Bro. John Antony', '9176387782', 'M', '', '2026-08-11'],
+    ['COR-07', 'team-cornerstone', 'Sis. Licia', '9003231040', 'F', '', '2026-08-11'],
+    ['COR-08', 'team-cornerstone', 'Sis. Yoga', '7550050054', 'F', '', '2026-08-11'],
+    ['COR-09', 'team-cornerstone', 'Bro. Zachariah', '8608583982', 'M', '', '2026-08-11'],
+    ['COR-10', 'team-cornerstone', 'Sis. Esther', '9600099746', 'F', '', '2026-08-11'],
+    ['COR-11', 'team-cornerstone', 'Bro. Venkat Christopher', '9789040635', 'M', '', '2026-08-11'],
+    ['COR-12', 'team-cornerstone', 'Bro. Sekar', '8668114098', 'M', '', '2026-08-11'],
+    ['COR-13', 'team-cornerstone', 'Bro. Durairaj', '7094513711', 'M', '', '2026-08-11'],
+    ['COR-14', 'team-cornerstone', 'Sis. Anitha', '9789808189', 'F', '', '2026-08-11'],
+    ['COR-15', 'team-cornerstone', 'Bro. Raghul', '7904992009', 'M', '', '2026-08-11'],
+    ['COR-16', 'team-cornerstone', 'Sis. Nandhini', '7904992009', 'F', '', '2026-08-11'],
+    ['COR-17', 'team-cornerstone', 'Bro. Johnson', '9941224973', 'M', '', '2026-08-11'],
+    ['COR-18', 'team-cornerstone', 'Sis. Theresa', '8939454210', 'F', '', '2026-08-11']
+  ];
+
+  // [MemberId, [sessionIds]] -- one entry per "Yes" cell in the BF/Lunch/Dinner
+  // x Aug14/15/16 grid, mapped straight to D2/D3/D4-MOR/AFT/EVE.
+  var plan = [
+    ['COR-01', ['D2-MOR', 'D2-AFT', 'D3-MOR', 'D3-AFT', 'D4-MOR', 'D4-AFT']],
+    ['COR-02', ['D4-MOR', 'D4-AFT']],
+    ['COR-03', ['D4-MOR', 'D4-AFT']],
+    ['COR-04', ['D2-MOR', 'D2-AFT', 'D2-EVE', 'D3-MOR', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']],
+    ['COR-05', ['D2-EVE', 'D3-MOR', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']],
+    ['COR-06', ['D3-MOR', 'D3-AFT', 'D4-MOR', 'D4-AFT']],
+    ['COR-07', ['D2-MOR', 'D2-AFT', 'D3-MOR', 'D3-AFT', 'D4-MOR', 'D4-AFT']],
+    ['COR-08', ['D2-EVE', 'D3-MOR', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']],
+    ['COR-09', ['D3-MOR', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']],
+    ['COR-10', ['D3-MOR', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']],
+    ['COR-11', ['D2-MOR', 'D3-MOR', 'D4-EVE']],
+    ['COR-12', ['D2-MOR', 'D2-AFT', 'D2-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']],
+    ['COR-13', ['D2-AFT', 'D2-EVE', 'D3-AFT', 'D3-EVE', 'D4-AFT', 'D4-EVE']],
+    ['COR-14', ['D2-MOR', 'D2-AFT', 'D3-MOR', 'D3-AFT', 'D4-MOR', 'D4-AFT']],
+    ['COR-15', ['D2-EVE', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT']],
+    ['COR-16', ['D2-EVE', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT']],
+    ['COR-17', ['D2-MOR', 'D2-AFT', 'D2-EVE', 'D3-MOR', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']],
+    ['COR-18', ['D2-MOR', 'D2-AFT', 'D2-EVE', 'D3-MOR', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']]
+  ];
+
+  var availability = [];
+  plan.forEach(function (p) {
+    p[1].forEach(function (sessionId) { availability.push([p[0], sessionId, 'MEALS']); });
+  });
+
+  var teamsResult = appendMissing_(ss, 'Teams', [0], teams);
+  var membersResult = appendMissing_(ss, 'Members', [0], members);
+  var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
+
+  notify_(
+    'Cornerstone import complete (existing rows left untouched):\n' +
+    'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
+    'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
+    'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there'
+  );
+}
+
 // Appends only the rows whose key (the values at keyCols) isn't already
 // present in the sheet. Never clears or modifies an existing row.
 function appendMissing_(ss, sheetName, keyCols, rows) {
