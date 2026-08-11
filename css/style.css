@@ -126,15 +126,15 @@ table { border-collapse: collapse; width: 100%; min-width: 480px; }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; white-space: nowrap; vertical-align: top; }
 th { color: var(--muted); font-weight: 600; }
 td.sessions-cell { white-space: normal; min-width: 260px; }
-td.wrap-cell { white-space: normal; word-break: break-word; max-width: 260px; }
-
-/* Tables where content length is unpredictable (e.g. free-text incident
-   descriptions) -- wrap onto multiple lines within a fixed column width
-   instead of growing the table and forcing horizontal scroll. */
-table.fixed-table { table-layout: fixed; min-width: 0; }
-table.fixed-table th, table.fixed-table td { white-space: normal; word-break: break-word; overflow-wrap: break-word; }
-table.fixed-table select { max-width: 100%; }
 td.sessions-cell .chip-row { gap: 4px; }
+
+/* One block per incident, stacked top-to-bottom, instead of a wide table --
+   free-text description/location just wrap naturally at any width. */
+.incident-card { border-top: 1px solid var(--border); padding: 10px 0; }
+.incident-card:first-of-type { border-top: none; }
+.incident-card-line { word-break: break-word; margin-bottom: 4px; }
+.incident-card-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.incident-card-controls select { padding: 5px 6px; border: 1px solid var(--border); border-radius: 6px; max-width: 220px; }
 td.sessions-cell .chip { padding: 2px 8px; font-size: 0.8rem; }
 
 .avail-grid { min-width: 700px; }

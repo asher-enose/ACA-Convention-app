@@ -97,10 +97,9 @@ const ControlRoom = (function () {
       '</div>';
 
     html += '<h3>Open issues <span class="muted">— sorted by priority</span></h3>';
-    html += '<div class="table-wrap"><table class="fixed-table"><colgroup>' +
-      '<col style="width:26%"><col style="width:14%"><col style="width:14%"><col style="width:12%"><col style="width:20%"><col style="width:8%"><col style="width:6%">' +
-      '</colgroup><thead><tr><th>What</th><th>Location</th><th>Reported by</th><th>Priority</th><th>Assigned to</th><th>Status</th><th></th></tr></thead>' +
-      '<tbody>' + (openIssues.map(function (i) { return incidentRow_(i); }).join('') || '<tr><td colspan="7" class="muted">No open issues.</td></tr>') + '</tbody></table></div>';
+    html += openIssues.length
+      ? openIssues.map(function (i) { return incidentRow_(i); }).join('')
+      : '<p class="muted">No open issues.</p>';
 
     html += '<div class="form" style="max-width:360px;margin:16px 0;"><label>Session<select id="cr-session">' +
       SESSIONS.map(function (s) { return '<option value="' + s.id + '"' + (s.id === selectedSessionId ? ' selected' : '') + '>' + escapeHtml(s.label) + ' — ' + escapeHtml(s.event) + '</option>'; }).join('') +
@@ -139,7 +138,7 @@ const ControlRoom = (function () {
       return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     });
 
-    const rows = sorted.map(function (i) { return incidentRow_(i); }).join('');
+    const cards = sorted.length ? sorted.map(function (i) { return incidentRow_(i); }).join('') : '<p class="muted">No incidents logged.</p>';
 
     document.getElementById('tab-content').innerHTML =
       '<h3>Report an incident</h3>' +
@@ -151,10 +150,7 @@ const ControlRoom = (function () {
       '<div class="form-actions"><button type="submit" class="btn-primary" id="btn-submit-incident">Log incident</button></div>' +
       '</form>' +
       '<h3>Incident log</h3>' +
-      '<div class="table-wrap"><table class="fixed-table"><colgroup>' +
-      '<col style="width:26%"><col style="width:14%"><col style="width:14%"><col style="width:12%"><col style="width:20%"><col style="width:8%"><col style="width:6%">' +
-      '</colgroup><thead><tr><th>What</th><th>Location</th><th>Reported by</th><th>Priority</th><th>Assigned to</th><th>Status</th><th></th></tr></thead>' +
-      '<tbody>' + (rows || '<tr><td colspan="7" class="muted">No incidents logged.</td></tr>') + '</tbody></table></div>';
+      cards;
 
     bindIncidentForm_();
     bindIncidentRowControls_();
@@ -162,20 +158,25 @@ const ControlRoom = (function () {
 
   function incidentRow_(i) {
     const resolved = i.status === 'resolved';
-    return '<tr>' +
-      '<td class="wrap-cell">' + escapeHtml(i.description) + '</td>' +
-      '<td class="wrap-cell">' + escapeHtml(i.location || '') + '</td>' +
-      '<td>' + escapeHtml(i.reportedBy || '') + '</td>' +
-      '<td><select data-priority-for="' + i.id + '">' + PRIORITIES.map(function (p) { return '<option value="' + p + '"' + (p === (i.priority || 'Medium') ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></td>' +
-      '<td><select data-assign-for="' + i.id + '"><option value=""' + (!i.assignedTo ? ' selected' : '') + '>Unassigned</option>' +
+    const priorityOptions = PRIORITIES.map(function (p) {
+      return '<option value="' + p + '"' + (p === (i.priority || 'Medium') ? ' selected' : '') + '>' + p + '</option>';
+    }).join('');
+    const assignOptions = '<option value=""' + (!i.assignedTo ? ' selected' : '') + '>Unassigned</option>' +
       contacts.map(function (c) {
         const label = (c.role ? c.role + ' — ' : '') + c.name;
         return '<option value="' + escapeHtml(c.name) + '"' + (c.name === i.assignedTo ? ' selected' : '') + '>' + escapeHtml(label) + '</option>';
-      }).join('') +
-      '</select></td>' +
-      '<td><span class="' + (resolved ? 'success' : 'warning') + '">' + (resolved ? 'CLOSED' : 'OPEN') + '</span></td>' +
-      '<td><button class="btn-small" data-toggle-incident="' + i.id + '">' + (resolved ? 'Reopen' : 'Close') + '</button></td>' +
-      '</tr>';
+      }).join('');
+
+    return '<div class="incident-card">' +
+      '<div class="incident-card-line">' + escapeHtml(i.description) + '</div>' +
+      (i.location ? '<div class="incident-card-line muted">Location: ' + escapeHtml(i.location) + '</div>' : '') +
+      (i.reportedBy ? '<div class="incident-card-line muted">Reported by: ' + escapeHtml(i.reportedBy) + '</div>' : '') +
+      '<div class="incident-card-controls">' +
+      '<select data-priority-for="' + i.id + '">' + priorityOptions + '</select>' +
+      '<select data-assign-for="' + i.id + '">' + assignOptions + '</select>' +
+      '<span class="' + (resolved ? 'success' : 'warning') + '">' + (resolved ? 'CLOSED' : 'OPEN') + '</span>' +
+      '<button class="btn-small" data-toggle-incident="' + i.id + '">' + (resolved ? 'Reopen' : 'Close') + '</button>' +
+      '</div></div>';
   }
 
   function bindIncidentForm_() {
