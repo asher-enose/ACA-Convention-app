@@ -148,7 +148,8 @@ const Organizer = (function () {
           html += '<div class="roster-slot-head"><strong>' + escapeHtml(teamName(teamId)) + '</strong> <span class="muted">' + teamMembers.length + '</span></div>';
           html += '<div class="chip-row">';
           teamMembers.forEach(function (m) {
-            html += '<span class="chip">' + escapeHtml(m.name) + (m.phone ? ' <span class="muted">(' + escapeHtml(m.phone) + ')</span>' : '') + '</span>';
+            const detail = [m.phone, servicesFor(m, session.id)].filter(Boolean).join(' · ');
+            html += '<span class="chip">' + escapeHtml(m.name) + (detail ? ' <span class="muted">(' + escapeHtml(detail) + ')</span>' : '') + '</span>';
           });
           html += '</div></div>';
         });
