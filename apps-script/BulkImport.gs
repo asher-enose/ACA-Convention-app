@@ -1354,6 +1354,74 @@ function importCornerstoneTeam() {
   );
 }
 
+// Adds the Faithful Warriors team (17 people), led by Mark Selvam. Source
+// sheet had a 4th column per day ("Egg peeling") which is intentionally NOT
+// imported here per the user's instruction -- only Breakfast/Lunch/Dinner
+// are mapped to MEALS. Additive -- safe to re-run.
+function importFaithfulWarriorsTeam() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var teams = [
+    ['team-faithfulwarriors', 'Faithful Warriors', 'Mark Selvam', '2026-08-11']
+  ];
+
+  var members = [
+    ['FWA-01', 'team-faithfulwarriors', 'Samuel', '7904521560', '', '', '2026-08-11'],
+    ['FWA-02', 'team-faithfulwarriors', 'Annal', '9025572032', '', '', '2026-08-11'],
+    ['FWA-03', 'team-faithfulwarriors', 'Dev Anand', '9600301800', '', '', '2026-08-11'],
+    ['FWA-04', 'team-faithfulwarriors', 'Cornelius', '9940161435', '', '', '2026-08-11'],
+    ['FWA-05', 'team-faithfulwarriors', 'Enoch Rajavel', '7092301864', '', '', '2026-08-11'],
+    ['FWA-06', 'team-faithfulwarriors', 'Beaula', '9551026834', '', '', '2026-08-11'],
+    ['FWA-07', 'team-faithfulwarriors', 'Beauto Emmanuel Raj', '9791066501', '', '', '2026-08-11'],
+    ['FWA-08', 'team-faithfulwarriors', 'S Edison Raj', '9940163047', '', '', '2026-08-11'],
+    ['FWA-09', 'team-faithfulwarriors', 'Jeevitha Premkumar', '8056094794', '', '', '2026-08-11'],
+    ['FWA-10', 'team-faithfulwarriors', 'Moses', '9941199178', '', '', '2026-08-11'],
+    ['FWA-11', 'team-faithfulwarriors', 'Sundari Akshal', '9840828852', '', '', '2026-08-11'],
+    ['FWA-12', 'team-faithfulwarriors', 'Gokul Moses', '9840828852', '', '', '2026-08-11'],
+    ['FWA-13', 'team-faithfulwarriors', 'Premkumar', '9884170157', '', '', '2026-08-11'],
+    ['FWA-14', 'team-faithfulwarriors', 'S. Margaret', '9003286296', '', '', '2026-08-11'],
+    ['FWA-15', 'team-faithfulwarriors', 'Dixon Kumar P', '9941725204', '', '', '2026-08-11'],
+    ['FWA-16', 'team-faithfulwarriors', 'S Ruthkezia', '9789978037', '', '', '2026-08-11'],
+    ['FWA-17', 'team-faithfulwarriors', 'Jansi Dev Anand', '8870018380', '', '', '2026-08-11']
+  ];
+
+  var plan = [
+    ['FWA-01', ['D2-MOR', 'D2-AFT', 'D2-EVE', 'D3-MOR', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']],
+    ['FWA-02', ['D2-MOR', 'D2-AFT', 'D2-EVE', 'D3-MOR', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']],
+    ['FWA-03', ['D2-AFT', 'D3-EVE', 'D4-AFT']],
+    ['FWA-04', ['D2-MOR', 'D2-AFT', 'D2-EVE', 'D3-MOR', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']],
+    ['FWA-05', ['D2-MOR', 'D2-AFT', 'D2-EVE', 'D3-MOR', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']],
+    ['FWA-06', ['D2-MOR', 'D2-AFT', 'D2-EVE', 'D3-MOR', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']],
+    ['FWA-07', ['D2-AFT']],
+    ['FWA-08', ['D3-AFT']],
+    ['FWA-09', ['D2-AFT', 'D3-AFT']],
+    ['FWA-10', ['D2-MOR', 'D2-AFT', 'D2-EVE', 'D3-EVE', 'D4-AFT']],
+    ['FWA-11', ['D2-MOR']],
+    ['FWA-12', ['D3-MOR', 'D3-AFT', 'D3-EVE', 'D4-MOR', 'D4-AFT', 'D4-EVE']],
+    ['FWA-13', ['D2-AFT']],
+    ['FWA-14', ['D3-AFT']],
+    ['FWA-15', ['D4-AFT']],
+    ['FWA-16', ['D4-AFT']],
+    ['FWA-17', ['D4-AFT']]
+  ];
+
+  var availability = [];
+  plan.forEach(function (p) {
+    p[1].forEach(function (sessionId) { availability.push([p[0], sessionId, 'MEALS']); });
+  });
+
+  var teamsResult = appendMissing_(ss, 'Teams', [0], teams);
+  var membersResult = appendMissing_(ss, 'Members', [0], members);
+  var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
+
+  notify_(
+    'Faithful Warriors import complete (existing rows left untouched):\n' +
+    'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
+    'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
+    'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there'
+  );
+}
+
 // Appends only the rows whose key (the values at keyCols) isn't already
 // present in the sheet. Never clears or modifies an existing row.
 function appendMissing_(ss, sheetName, keyCols, rows) {
