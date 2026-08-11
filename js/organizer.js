@@ -8,6 +8,7 @@ const Organizer = (function () {
   let activeTab = 'overview';
   let byTeamSelectedId = null;
   let byTeamGrouping = 'name';
+  let byTeamServiceFilter = 'ALL';
   let rosterGrouping = 'session';
   let lastAlgorithm = 'round-robin';
   let lastMaxPerMember = 3;
@@ -232,7 +233,11 @@ const Organizer = (function () {
       '<div class="tabs small">' +
       '<button class="tab-btn' + (byTeamGrouping === 'name' ? ' active' : '') + '" data-byteam-group="name">Group by Name</button>' +
       '<button class="tab-btn' + (byTeamGrouping === 'session' ? ' active' : '') + '" data-byteam-group="session">Group by Session</button>' +
-      '</div>';
+      '</div>' +
+      '<div class="form" style="max-width:320px;margin:10px 0 16px;"><label>Filter by service<select id="byteam-service-filter">' +
+      '<option value="ALL"' + (byTeamServiceFilter === 'ALL' ? ' selected' : '') + '>All</option>' +
+      SERVICES.map(function (s) { return '<option value="' + s.id + '"' + (s.id === byTeamServiceFilter ? ' selected' : '') + '>' + escapeHtml(s.label) + '</option>'; }).join('') +
+      '</select></label></div>';
 
     html += byTeamGrouping === 'session' ? renderByTeamGroupedBySession(teamMembers) : renderByTeamGroupedByName(teamMembers);
 
@@ -240,6 +245,10 @@ const Organizer = (function () {
 
     body.querySelectorAll('[data-byteam-group]').forEach(function (btn) {
       btn.addEventListener('click', function () { byTeamGrouping = btn.getAttribute('data-byteam-group'); renderByTeamBody(); });
+    });
+    document.getElementById('byteam-service-filter').addEventListener('change', function () {
+      byTeamServiceFilter = this.value;
+      renderByTeamBody();
     });
     body.querySelectorAll('[data-byteam-edit]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -249,11 +258,24 @@ const Organizer = (function () {
     });
   }
 
+  function matchesFilter_(a) {
+    return byTeamServiceFilter === 'ALL' || a.serviceId === byTeamServiceFilter;
+  }
+
   function renderByTeamGroupedByName(teamMembers) {
-    const rows = teamMembers.map(function (m) {
-      const sessionChips = SESSIONS.filter(function (s) {
-        return (m.availability || []).some(function (a) { return a.sessionId === s.id; });
-      }).map(function (s) { return '<span class="chip">' + escapeHtml(s.label) + '</span>'; }).join('');
+    const visible = teamMembers.filter(function (m) {
+      return byTeamServiceFilter === 'ALL' || (m.availability || []).some(matchesFilter_);
+    });
+
+    const rows = visible.map(function (m) {
+      const chips = [];
+      SESSIONS.forEach(function (s) {
+        (m.availability || []).filter(function (a) { return a.sessionId === s.id && matchesFilter_(a); }).forEach(function (a) {
+          const text = byTeamServiceFilter === 'ALL' ? s.label + ' (' + serviceById(a.serviceId).label + ')' : s.label;
+          chips.push('<span class="chip">' + escapeHtml(text) + '</span>');
+        });
+      });
+      const sessionChips = chips.join('');
       return '<tr>' +
         '<td>' + escapeHtml(m.name) + '</td>' +
         '<td>' + escapeHtml(m.phone || '') + '</td>' +
@@ -265,7 +287,7 @@ const Organizer = (function () {
     }).join('');
 
     return '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Sex</th><th>Age</th><th>Registered sessions</th><th></th></tr></thead>' +
-      '<tbody>' + (rows || '<tr><td colspan="6" class="muted">No members in this team yet.</td></tr>') + '</tbody></table></div>';
+      '<tbody>' + (rows || '<tr><td colspan="6" class="muted">No members match this filter.</td></tr>') + '</tbody></table></div>';
   }
 
   function renderByTeamGroupedBySession(teamMembers) {
@@ -277,18 +299,21 @@ const Organizer = (function () {
       html += '<h4>' + escapeHtml(groupLabel) + '</h4>';
       groups[groupLabel].forEach(function (session) {
         const registered = teamMembers.filter(function (m) {
-          return (m.availability || []).some(function (a) { return a.sessionId === session.id; });
+          return (m.availability || []).some(function (a) { return a.sessionId === session.id && matchesFilter_(a); });
         });
         html += '<div class="roster-slot">';
         html += '<div class="roster-slot-head"><strong>' + escapeHtml(session.label) + '</strong> <span class="muted">— ' + escapeHtml(session.event) + ' · ' + registered.length + '</span></div>';
         if (registered.length) {
           html += '<div class="chip-row">';
           registered.forEach(function (m) {
-            html += '<span class="chip">' + escapeHtml(m.name) + (m.phone ? ' <span class="muted">(' + escapeHtml(m.phone) + ')</span>' : '') + '</span>';
+            const matchedServices = (m.availability || []).filter(function (a) { return a.sessionId === session.id && matchesFilter_(a); })
+              .map(function (a) { return serviceById(a.serviceId).label; });
+            const svcText = byTeamServiceFilter === 'ALL' ? ' <span class="muted">[' + escapeHtml(matchedServices.join(', ')) + ']</span>' : '';
+            html += '<span class="chip">' + escapeHtml(m.name) + (m.phone ? ' <span class="muted">(' + escapeHtml(m.phone) + ')</span>' : '') + svcText + '</span>';
           });
           html += '</div>';
         } else {
-          html += '<p class="muted">No one from this team registered for this session.</p>';
+          html += '<p class="muted">No one from this team registered for this session' + (byTeamServiceFilter === 'ALL' ? '' : ' for this service') + '.</p>';
         }
         html += '</div>';
       });
