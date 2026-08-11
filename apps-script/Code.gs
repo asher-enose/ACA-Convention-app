@@ -19,7 +19,7 @@ var SHEETS = {
   Availability: ['MemberId', 'SessionId', 'ServiceId'],
   ServiceNeeds: ['SessionId', 'ServiceId', 'RequiredCount'],
   Assignments: ['AssignmentId', 'SessionId', 'ServiceId', 'TeamId', 'MemberId', 'BatchId', 'CreatedAt'],
-  Incidents: ['IncidentId', 'Description', 'Location', 'ReportedBy', 'Status', 'CreatedAt'],
+  Incidents: ['IncidentId', 'Description', 'Location', 'ReportedBy', 'Status', 'PhotoUrl', 'CreatedAt'],
   Contacts: ['ContactId', 'Name', 'Role', 'Phone', 'Notes', 'CreatedAt']
 };
 
@@ -144,7 +144,7 @@ function bootstrap() {
   });
 
   var incidents = sheetToObjects('Incidents').map(function (i) {
-    return { id: i.IncidentId, description: i.Description, location: i.Location, reportedBy: i.ReportedBy, status: i.Status || 'open', createdAt: i.CreatedAt };
+    return { id: i.IncidentId, description: i.Description, location: i.Location, reportedBy: i.ReportedBy, status: i.Status || 'open', photoUrl: i.PhotoUrl || '', createdAt: i.CreatedAt };
   });
 
   var contacts = sheetToObjects('Contacts').map(function (c) {
@@ -267,6 +267,14 @@ function saveIncident(incident) {
   var id = incident.id;
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Incidents');
 
+  // A new photo (base64 from the browser) replaces any existing one; with
+  // no new photo, keep whatever URL was already on the incident (e.g. when
+  // this call is just a status toggle).
+  var photoUrl = incident.photoUrl || '';
+  if (incident.photoBase64) {
+    photoUrl = uploadIncidentPhoto_(incident.photoBase64, incident.photoMimeType);
+  }
+
   if (id) {
     var values = sh.getDataRange().getValues();
     var found = false;
@@ -274,7 +282,7 @@ function saveIncident(incident) {
       if (values[i][0] === id) {
         sh.getRange(i + 1, 1, 1, SHEETS.Incidents.length).setValues([[
           id, incident.description.trim(), incident.location || '', incident.reportedBy || '',
-          incident.status || 'open', values[i][5]
+          incident.status || 'open', photoUrl, values[i][6]
         ]]);
         found = true;
         break;
@@ -285,11 +293,26 @@ function saveIncident(incident) {
     id = Utilities.getUuid();
     appendRow('Incidents', {
       IncidentId: id, Description: incident.description.trim(), Location: incident.location || '',
-      ReportedBy: incident.reportedBy || '', Status: incident.status || 'open', CreatedAt: new Date()
+      ReportedBy: incident.reportedBy || '', Status: incident.status || 'open', PhotoUrl: photoUrl, CreatedAt: new Date()
     });
   }
 
-  return { id: id };
+  return { id: id, photoUrl: photoUrl };
+}
+
+// Decodes a base64 photo from the browser, saves it into a Drive folder
+// (created on first use), makes it viewable by anyone with the link (this
+// app has no passcode, so that matches how everything else here works),
+// and returns the file's URL to store in the sheet.
+function uploadIncidentPhoto_(base64Data, mimeType) {
+  var folders = DriveApp.getFoldersByName('Convention Incident Photos');
+  var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder('Convention Incident Photos');
+
+  var bytes = Utilities.base64Decode(base64Data);
+  var blob = Utilities.newBlob(bytes, mimeType || 'image/jpeg', 'incident-' + new Date().getTime() + '.jpg');
+  var file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return file.getUrl();
 }
 
 function saveContact(contact) {

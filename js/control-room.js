@@ -50,6 +50,35 @@ const ControlRoom = (function () {
     return SESSIONS[0].id;
   }
 
+  // Shrinks a photo (e.g. straight from a phone camera, which can be
+  // several MB) down to a JPEG capped at maxDim on its longest side, so the
+  // upload is fast and stays well under Apps Script's request size limits.
+  // Resolves to { base64, mimeType } with the base64 already stripped of
+  // its "data:image/jpeg;base64," prefix.
+  function compressImageFile_(file, maxDim, quality) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onerror = function () { reject(new Error('Could not read the photo file.')); };
+      reader.onload = function () {
+        const img = new Image();
+        img.onerror = function () { reject(new Error('Could not load the photo.')); };
+        img.onload = function () {
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve({ base64: dataUrl.split(',')[1], mimeType: 'image/jpeg' });
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   // ---- shell / tabs ------------------------------------------------------
 
   function render() {
@@ -124,6 +153,7 @@ const ControlRoom = (function () {
         '<td>' + escapeHtml(i.description) + '</td>' +
         '<td>' + escapeHtml(i.location || '') + '</td>' +
         '<td>' + escapeHtml(i.reportedBy || '') + '</td>' +
+        '<td>' + (i.photoUrl ? '<a href="' + escapeHtml(i.photoUrl) + '" target="_blank" rel="noopener">View photo</a>' : '') + '</td>' +
         '<td><span class="' + (resolved ? 'success' : 'warning') + '">' + (resolved ? 'RESOLVED' : 'OPEN') + '</span></td>' +
         '<td><button class="btn-small" data-toggle-incident="' + i.id + '">' + (resolved ? 'Reopen' : 'Resolve') + '</button></td>' +
         '</tr>';
@@ -135,28 +165,61 @@ const ControlRoom = (function () {
       '<label>What happened<input type="text" id="inc-description" required></label>' +
       '<label>Location<input type="text" id="inc-location"></label>' +
       '<label>Reported by<input type="text" id="inc-reported-by"></label>' +
-      '<div class="form-actions"><button type="submit" class="btn-primary">Log incident</button></div>' +
+      '<label>Photo (optional)<input type="file" id="inc-photo" accept="image/*" capture="environment"></label>' +
+      '<div class="form-actions"><button type="submit" class="btn-primary" id="btn-submit-incident">Log incident</button></div>' +
       '</form>' +
       '<h3>Incident log</h3>' +
-      '<div class="table-wrap"><table><thead><tr><th>What</th><th>Location</th><th>Reported by</th><th>Status</th><th></th></tr></thead>' +
-      '<tbody>' + (rows || '<tr><td colspan="5" class="muted">No incidents logged.</td></tr>') + '</tbody></table></div>';
+      '<div class="table-wrap"><table><thead><tr><th>What</th><th>Location</th><th>Reported by</th><th>Photo</th><th>Status</th><th></th></tr></thead>' +
+      '<tbody>' + (rows || '<tr><td colspan="6" class="muted">No incidents logged.</td></tr>') + '</tbody></table></div>';
 
     document.getElementById('form-incident').addEventListener('submit', async function (ev) {
       ev.preventDefault();
       const description = document.getElementById('inc-description').value.trim();
       if (!description) return;
+
+      const submitBtn = document.getElementById('btn-submit-incident');
+      const photoFile = document.getElementById('inc-photo').files[0];
+      let photoBase64, photoMimeType;
+
+      if (photoFile) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Processing photo…';
+        try {
+          const compressed = await compressImageFile_(photoFile, 1280, 0.7);
+          photoBase64 = compressed.base64;
+          photoMimeType = compressed.mimeType;
+        } catch (err) {
+          App.showError('Could not process photo: ' + err.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Log incident';
+          return;
+        }
+      }
+
       const incident = {
         description: description,
         location: document.getElementById('inc-location').value.trim(),
         reportedBy: document.getElementById('inc-reported-by').value.trim(),
-        status: 'open'
+        status: 'open',
+        photoBase64: photoBase64,
+        photoMimeType: photoMimeType
       };
       try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = photoFile ? 'Uploading photo…' : 'Saving…';
         const result = await Api.call('saveIncident', { incident: incident });
-        incidents.push(Object.assign({}, incident, { id: result.id, createdAt: new Date().toISOString() }));
+        incidents.push({
+          id: result.id, description: incident.description, location: incident.location,
+          reportedBy: incident.reportedBy, status: incident.status,
+          photoUrl: result.photoUrl || '', createdAt: new Date().toISOString()
+        });
         App.showToast('Incident logged.');
         renderIncidents();
-      } catch (err) { App.showError(err.message); }
+      } catch (err) {
+        App.showError(err.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Log incident';
+      }
     });
 
     root().querySelectorAll('[data-toggle-incident]').forEach(function (btn) {

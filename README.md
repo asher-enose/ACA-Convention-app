@@ -93,8 +93,12 @@ set the source to the `main` branch, root folder. Your site will be live at
   - *Dashboard* — required vs. filled per service for a chosen session
     (defaults to a best guess at the current one based on the clock), as a
     quick status board.
-  - *Incidents* — log a problem as it happens (what, where, reported by)
-    and mark it resolved/reopened; the open ones sort to the top.
+  - *Incidents* — log a problem as it happens (what, where, reported by,
+    an optional photo straight from the phone camera) and mark it
+    resolved/reopened; the open ones sort to the top. Photos are
+    compressed in the browser before upload and stored in a Drive
+    folder called "Convention Incident Photos"; the sheet only holds
+    the link.
   - *Contacts* — a quick-reference list of key phone numbers (medical,
     security, coordinators) that anyone can add to or remove from.
 - **Check my schedule**: a volunteer enters their name and phone and sees
