@@ -1422,6 +1422,81 @@ function importFaithfulWarriorsTeam() {
   );
 }
 
+// Adds the Sing Out team (27 people), led by Bro. Abraham. Per user
+// confirmation: everyone is registered for MEALS on Aug 15 Dinner
+// (D3-EVE); those marked "ok" in the sheet's 4th column are ALSO
+// registered for CROWD (Crowd Management) across every session of the
+// whole event. SNG-27 (Sis. Sivagami) had a blank date in the source
+// sheet -- no availability rows added for her, flagged below.
+// Additive -- safe to re-run.
+function importSingOutTeam() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var teams = [
+    ['team-singout', 'Sing out team', 'Bro. Abraham', '2026-08-11']
+  ];
+
+  var members = [
+    ['SNG-01', 'team-singout', 'Bro. Abraham', '7395932727', 'M', '', '2026-08-11'],
+    ['SNG-02', 'team-singout', 'Bro. Jeswin', '9884234587', 'M', '', '2026-08-11'],
+    ['SNG-03', 'team-singout', 'Bro. Issac', '9940385138', 'M', '', '2026-08-11'],
+    ['SNG-04', 'team-singout', 'Bro. Murali', '9543252346', 'M', '', '2026-08-11'],
+    ['SNG-05', 'team-singout', 'Bro. Samson', '9841562618', 'M', '', '2026-08-11'],
+    ['SNG-06', 'team-singout', 'Bro. Simion', '7358741069', 'M', '', '2026-08-11'],
+    ['SNG-07', 'team-singout', 'Bro. Ramesh', '8122354886', 'M', '', '2026-08-11'],
+    ['SNG-08', 'team-singout', 'Bro. James', '9940093420', 'M', '', '2026-08-11'],
+    ['SNG-09', 'team-singout', 'Bro. Immanuel', '9884870378', 'M', '', '2026-08-11'],
+    ['SNG-10', 'team-singout', 'Bro. Joshua', '936796266', 'M', '', '2026-08-11'],
+    ['SNG-11', 'team-singout', 'Sis. Angel', '8124327991', 'F', '', '2026-08-11'],
+    ['SNG-12', 'team-singout', 'Sis. Suganthi', '9840985661', 'F', '', '2026-08-11'],
+    ['SNG-13', 'team-singout', 'Sis. Rebekkal', '9710483672', 'F', '', '2026-08-11'],
+    ['SNG-14', 'team-singout', 'Sis. Thanammal', '7358265886', 'F', '', '2026-08-11'],
+    ['SNG-15', 'team-singout', 'Sis. Christal', '9150692304', 'F', '', '2026-08-11'],
+    ['SNG-16', 'team-singout', 'Sis. Padma', '9941758628', 'F', '', '2026-08-11'],
+    ['SNG-17', 'team-singout', 'Sis. Deva Ruby', '9940284091', 'F', '', '2026-08-11'],
+    ['SNG-18', 'team-singout', 'Sis. Renuka', '9841233476', 'F', '', '2026-08-11'],
+    ['SNG-19', 'team-singout', 'Bro. Zakariya', '7305920871', 'M', '', '2026-08-11'],
+    ['SNG-20', 'team-singout', 'Bro. Johnwesly', '9884889303', 'M', '', '2026-08-11'],
+    ['SNG-21', 'team-singout', 'Sis. Preetha', '9841147439', 'F', '', '2026-08-11'],
+    ['SNG-22', 'team-singout', 'Sis. Inbakumari', '9952373675', 'F', '', '2026-08-11'],
+    ['SNG-23', 'team-singout', 'Bro. Robert', '6379284020', 'M', '', '2026-08-11'],
+    ['SNG-24', 'team-singout', 'Sis. Beaulah', '9677142434', 'F', '', '2026-08-11'],
+    ['SNG-25', 'team-singout', 'Bro. Sabastin', '7418346651', 'M', '', '2026-08-11'],
+    ['SNG-26', 'team-singout', 'Sis. Premlatha', '7358441352', 'F', '', '2026-08-11'],
+    ['SNG-27', 'team-singout', 'Sis. Sivagami', '8949462297', 'F', '', '2026-08-11']
+  ];
+
+  var OK_IDS = ['SNG-01', 'SNG-02', 'SNG-03', 'SNG-04', 'SNG-06', 'SNG-15', 'SNG-16', 'SNG-22'];
+  var FULL_ALL = [
+    'D0-MOR', 'D0-AFT', 'D1-EVE',
+    'D2-MOR', 'D2-AFT', 'D2-EVE',
+    'D3-MOR', 'D3-AFT', 'D3-EVE',
+    'D4-MOR', 'D4-AFT', 'D4-EVE'
+  ];
+
+  var availability = [];
+  members.forEach(function (m) {
+    var id = m[0];
+    if (id === 'SNG-27') return; // blank date in source -- no commitment recorded
+    availability.push([id, 'D3-EVE', 'MEALS']);
+    if (OK_IDS.indexOf(id) !== -1) {
+      FULL_ALL.forEach(function (sessionId) { availability.push([id, sessionId, 'CROWD']); });
+    }
+  });
+
+  var teamsResult = appendMissing_(ss, 'Teams', [0], teams);
+  var membersResult = appendMissing_(ss, 'Members', [0], members);
+  var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
+
+  notify_(
+    'Sing Out team import complete (existing rows left untouched):\n' +
+    'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
+    'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
+    'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there\n' +
+    'Note: Sis. Sivagami (SNG-27) has no availability recorded -- her row had a blank date.'
+  );
+}
+
 // Appends only the rows whose key (the values at keyCols) isn't already
 // present in the sheet. Never clears or modifies an existing row.
 function appendMissing_(ss, sheetName, keyCols, rows) {
