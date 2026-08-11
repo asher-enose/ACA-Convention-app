@@ -9,6 +9,7 @@ const Organizer = (function () {
   let byTeamSelectedId = null;
   let byTeamGrouping = 'name';
   let byTeamServiceFilter = 'ALL';
+  let volSessionServiceFilter = 'ALL';
   let rosterGrouping = 'session';
   let lastAlgorithm = 'round-robin';
   let lastMaxPerMember = 3;
@@ -118,12 +119,16 @@ const Organizer = (function () {
     const groups = {};
     SESSIONS.forEach(function (s) { (groups[s.group] = groups[s.group] || []).push(s); });
 
-    let html = '<p class="muted">Everyone who has registered availability for each session, grouped by team, regardless of whether a roster has been generated yet.</p>';
+    let html = '<p class="muted">Everyone who has registered availability for each session, grouped by team, regardless of whether a roster has been generated yet.</p>' +
+      '<div class="form" style="max-width:320px;margin:10px 0 16px;"><label>Filter by service<select id="vol-session-service-filter">' +
+      '<option value="ALL"' + (volSessionServiceFilter === 'ALL' ? ' selected' : '') + '>All</option>' +
+      SERVICES.map(function (s) { return '<option value="' + s.id + '"' + (s.id === volSessionServiceFilter ? ' selected' : '') + '>' + escapeHtml(s.label) + '</option>'; }).join('') +
+      '</select></label></div>';
 
     Object.keys(groups).forEach(function (groupLabel) {
       html += '<h3>' + escapeHtml(groupLabel) + '</h3>';
       groups[groupLabel].forEach(function (session) {
-        const registered = eligibleMembersFor2(session.id);
+        const registered = eligibleMembersForSession_(session.id);
 
         html += '<div class="roster-session">' +
           '<div class="roster-session-title" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">' +
@@ -132,7 +137,7 @@ const Organizer = (function () {
           '</div>';
 
         if (!registered.length) {
-          html += '<p class="muted">No one registered yet.</p></div>';
+          html += '<p class="muted">No one registered' + (volSessionServiceFilter === 'ALL' ? ' yet' : ' for this service yet') + '.</p></div>';
           return;
         }
 
@@ -148,7 +153,8 @@ const Organizer = (function () {
           html += '<div class="roster-slot-head"><strong>' + escapeHtml(teamName(teamId)) + '</strong> <span class="muted">' + teamMembers.length + '</span></div>';
           html += '<div class="chip-row">';
           teamMembers.forEach(function (m) {
-            const detail = [m.phone, servicesFor(m, session.id)].filter(Boolean).join(' · ');
+            const svc = volSessionServiceFilter === 'ALL' ? servicesFor(m, session.id) : serviceById(volSessionServiceFilter).label;
+            const detail = [m.phone, svc].filter(Boolean).join(' · ');
             html += '<span class="chip">' + escapeHtml(m.name) + (detail ? ' <span class="muted">(' + escapeHtml(detail) + ')</span>' : '') + '</span>';
           });
           html += '</div></div>';
@@ -159,8 +165,20 @@ const Organizer = (function () {
 
     document.getElementById('tab-content').innerHTML = html;
 
+    document.getElementById('vol-session-service-filter').addEventListener('change', function () {
+      volSessionServiceFilter = this.value;
+      renderVolunteersBySession();
+    });
     root().querySelectorAll('[data-download-session]').forEach(function (btn) {
       btn.addEventListener('click', function () { exportSessionCsv(btn.getAttribute('data-download-session')); });
+    });
+  }
+
+  function eligibleMembersForSession_(sessionId) {
+    return eligibleMembersFor2(sessionId).filter(function (m) {
+      return volSessionServiceFilter === 'ALL' || (m.availability || []).some(function (a) {
+        return a.sessionId === sessionId && a.serviceId === volSessionServiceFilter;
+      });
     });
   }
 
@@ -172,12 +190,13 @@ const Organizer = (function () {
 
   function exportSessionCsv(sessionId) {
     const session = sessionById(sessionId);
-    const registered = eligibleMembersFor2(sessionId).slice().sort(function (a, b) {
+    const registered = eligibleMembersForSession_(sessionId).slice().sort(function (a, b) {
       return teamName(a.teamId).localeCompare(teamName(b.teamId)) || a.name.localeCompare(b.name);
     });
     const rows = [['Team', 'Name', 'Phone', 'Sex', 'Services']];
     registered.forEach(function (m) {
-      rows.push([teamName(m.teamId), m.name, m.phone || '', m.sex || '', servicesFor(m, sessionId)]);
+      const svc = volSessionServiceFilter === 'ALL' ? servicesFor(m, sessionId) : serviceById(volSessionServiceFilter).label;
+      rows.push([teamName(m.teamId), m.name, m.phone || '', m.sex || '', svc]);
     });
     const csv = rows.map(function (r) { return r.map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
