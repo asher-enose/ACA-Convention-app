@@ -1495,6 +1495,50 @@ function importSingOutTeam() {
   );
 }
 
+// Adds the Nithiya Kirubai team (15 people so far), led by Bro. Nandakumar
+// (not among the rows seen yet -- add him separately once his row/phone is
+// available). All MEALS, Aug 16 Evening (D4-EVE) only. Additive -- safe to
+// re-run.
+function importNithiyaKirubaiTeam() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var teams = [
+    ['team-nithiyakirubai', 'Nithiya Kirubai', 'Bro. Nandakumar', '2026-08-11']
+  ];
+
+  var members = [
+    ['NKB-01', 'team-nithiyakirubai', 'Johnson', '7806985082', '', '', '2026-08-11'],
+    ['NKB-02', 'team-nithiyakirubai', 'Charles', '8124384165', '', '', '2026-08-11'],
+    ['NKB-03', 'team-nithiyakirubai', 'Vijaya Kumar', '8838891386', '', '', '2026-08-11'],
+    ['NKB-04', 'team-nithiyakirubai', 'Vijayan', '7358583030', '', '', '2026-08-11'],
+    ['NKB-05', 'team-nithiyakirubai', 'Priya', '9894083220', '', '', '2026-08-11'],
+    ['NKB-06', 'team-nithiyakirubai', 'Siva Edison', '9003854684', '', '', '2026-08-11'],
+    ['NKB-07', 'team-nithiyakirubai', 'Stephen', '9840058593', '', '', '2026-08-11'],
+    ['NKB-08', 'team-nithiyakirubai', 'John Kennedy', '8680894694', '', '', '2026-08-11'],
+    ['NKB-09', 'team-nithiyakirubai', 'Hepsi', '9092944514', '', '', '2026-08-11'],
+    ['NKB-10', 'team-nithiyakirubai', 'Sudhakar', '8825402967', '', '', '2026-08-11'],
+    ['NKB-11', 'team-nithiyakirubai', 'Prabhu', '9003011730', '', '', '2026-08-11'],
+    ['NKB-12', 'team-nithiyakirubai', 'Prabhu (2)', '8310369729', '', '', '2026-08-11'],
+    ['NKB-13', 'team-nithiyakirubai', 'Sonia', '9445888984', '', '', '2026-08-11'],
+    ['NKB-14', 'team-nithiyakirubai', 'Jones', '9444719201', '', '', '2026-08-11'],
+    ['NKB-15', 'team-nithiyakirubai', 'Raja Rajan', '8015117355', '', '', '2026-08-11']
+  ];
+
+  var availability = members.map(function (m) { return [m[0], 'D4-EVE', 'MEALS']; });
+
+  var teamsResult = appendMissing_(ss, 'Teams', [0], teams);
+  var membersResult = appendMissing_(ss, 'Members', [0], members);
+  var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
+
+  notify_(
+    'Nithiya Kirubai import complete (existing rows left untouched):\n' +
+    'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
+    'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
+    'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there\n' +
+    'Note: leader Bro. Nandakumar not yet added -- send his row when available.'
+  );
+}
+
 // Appends only the rows whose key (the values at keyCols) isn't already
 // present in the sheet. Never clears or modifies an existing row.
 function appendMissing_(ss, sheetName, keyCols, rows) {
