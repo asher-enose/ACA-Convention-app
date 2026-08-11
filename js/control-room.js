@@ -27,7 +27,11 @@ const ControlRoom = (function () {
   }
 
   function root() { return document.getElementById('app'); }
-  function teamName(id) { const t = teams.find(function (x) { return x.id === id; }); return t ? t.name : '(unknown team)'; }
+  function teamName(id) {
+    const t = teams.find(function (x) { return x.id === id; });
+    if (!t) return '(unknown team)';
+    return t.leaderName ? t.name + ' (' + t.leaderName + ')' : t.name;
+  }
   function needFor(sessionId, serviceId) {
     const n = serviceNeeds.find(function (x) { return x.sessionId === sessionId && x.serviceId === serviceId; });
     return n ? n.requiredCount : 0;

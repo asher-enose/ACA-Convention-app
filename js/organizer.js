@@ -31,7 +31,11 @@ const Organizer = (function () {
   }
 
   function root() { return document.getElementById('app'); }
-  function teamName(id) { const t = teams.find(function (x) { return x.id === id; }); return t ? t.name : '(unknown team)'; }
+  function teamName(id) {
+    const t = teams.find(function (x) { return x.id === id; });
+    if (!t) return '(unknown team)';
+    return t.leaderName ? t.name + ' (' + t.leaderName + ')' : t.name;
+  }
   function member(id) { return members.find(function (m) { return m.id === id; }); }
   function memberName(id) { const m = member(id); return m ? m.name : '(removed member)'; }
   function needFor(sessionId, serviceId) {
@@ -85,7 +89,7 @@ const Organizer = (function () {
     const teamRows = teams.map(function (t) {
       const count = members.filter(function (m) { return m.teamId === t.id; }).length;
       const assigned = new Set(savedAssignments.filter(function (a) { return a.teamId === t.id; }).map(function (a) { return a.memberId; })).size;
-      return '<tr><td>' + escapeHtml(t.name) + '</td><td>' + count + '</td><td>' + assigned + '</td></tr>';
+      return '<tr><td>' + escapeHtml(teamName(t.id)) + '</td><td>' + count + '</td><td>' + assigned + '</td></tr>';
     }).join('');
 
     const load = Scheduler.computeMemberLoad(members, savedAssignments);
@@ -225,7 +229,7 @@ const Organizer = (function () {
       '<div class="form"><label>Team<select id="byteam-select">' +
       '<option value="">Select a team…</option>' +
       teams.map(function (t) {
-        return '<option value="' + t.id + '"' + (t.id === byTeamSelectedId ? ' selected' : '') + '>' + escapeHtml(t.name) + '</option>';
+        return '<option value="' + t.id + '"' + (t.id === byTeamSelectedId ? ' selected' : '') + '>' + escapeHtml(teamName(t.id)) + '</option>';
       }).join('') +
       '</select></label></div>' +
       '<div id="byteam-body"></div>';
@@ -566,7 +570,7 @@ const Organizer = (function () {
       const rows = (byTeam[t.id] || []).slice().sort(function (a, b) {
         return SESSIONS.findIndex(function (s) { return s.id === a.sessionId; }) - SESSIONS.findIndex(function (s) { return s.id === b.sessionId; });
       });
-      html += '<div class="roster-session"><div class="roster-session-title">' + escapeHtml(t.name) +
+      html += '<div class="roster-session"><div class="roster-session-title">' + escapeHtml(teamName(t.id)) +
         ' <span class="muted">— ' + rows.length + ' assignment(s), ' + new Set(rows.map(function (r) { return r.memberId; })).size + ' people</span></div>';
       if (rows.length) {
         html += '<div class="table-wrap"><table><thead><tr><th>Volunteer</th><th>Session</th><th>Service</th></tr></thead><tbody>';
