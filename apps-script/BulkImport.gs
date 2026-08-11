@@ -1124,6 +1124,54 @@ function importLivingHopeTeam() {
   );
 }
 
+// Adds members to the EXISTING "Balan Team" (TeamId below, already in the
+// sheet — this does not touch the Teams tab at all). All MEALS, per the
+// listed days: 13 -> Dedication/Aug 13 dinner only (single session), 14/15/16
+// -> all three meal-sessions of that Convention day. Additive — safe to re-run.
+function importBalanTeamMembers() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var TEAM_ID = 'bf27b610-f508-43c8-be4e-2c5fcee7d38e';
+
+  var members = [
+    ['BAL-01', TEAM_ID, 'Rowlands', '9962707735', '', '', '2026-08-11'],
+    ['BAL-02', TEAM_ID, 'Darthy', '9500083103', '', '', '2026-08-11'],
+    ['BAL-03', TEAM_ID, 'Jenifer David', '9940347070', '', '', '2026-08-11'],
+    ['BAL-04', TEAM_ID, 'John Stephen', '9092077111', '', '', '2026-08-11'],
+    ['BAL-05', TEAM_ID, 'John babu', '8610714700', '', '', '2026-08-11'],
+    ['BAL-06', TEAM_ID, 'Jayachitra', '9498111989', '', '', '2026-08-11'],
+    ['BAL-07', TEAM_ID, 'David Agustine', '9840331378', '', '', '2026-08-11']
+  ];
+
+  var D13 = ['D1-EVE'];
+  var D14 = ['D2-MOR', 'D2-AFT', 'D2-EVE'];
+  var D15 = ['D3-MOR', 'D3-AFT', 'D3-EVE'];
+  var D16 = ['D4-MOR', 'D4-AFT', 'D4-EVE'];
+
+  var plan = [
+    ['BAL-01', D13.concat(D14, D15, D16)],
+    ['BAL-02', D13.concat(D14, D15, D16)],
+    ['BAL-03', D13.concat(D14, D15, D16)],
+    ['BAL-04', D13.concat(D14, D15, D16)],
+    ['BAL-05', D13.concat(D14, D15, D16)],
+    ['BAL-06', D14.concat(D15, D16)],
+    ['BAL-07', D15.concat(D16)]
+  ];
+
+  var availability = [];
+  plan.forEach(function (p) {
+    p[1].forEach(function (sessionId) { availability.push([p[0], sessionId, 'MEALS']); });
+  });
+
+  var membersResult = appendMissing_(ss, 'Members', [0], members);
+  var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
+
+  SpreadsheetApp.getUi().alert(
+    'Balan Team members import complete (existing rows left untouched):\n' +
+    'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
+    'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there'
+  );
+}
+
 // Appends only the rows whose key (the values at keyCols) isn't already
 // present in the sheet. Never clears or modifies an existing row.
 function appendMissing_(ss, sheetName, keyCols, rows) {
