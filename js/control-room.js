@@ -1,6 +1,6 @@
 const ControlRoom = (function () {
   let teams = [];
-  let members = [];
+  let memberCount = 0;
   let serviceNeeds = [];
   let assignments = [];
   let incidents = [];
@@ -15,18 +15,12 @@ const ControlRoom = (function () {
     activeTab = 'dashboard';
     selectedSessionId = currentSessionId();
     render();
-    App.setActiveWatcher(Api.watchForUpdates(function () {
-      App.showUpdateBanner(async function () {
-        await loadData();
-        render();
-      });
-    }, 20000));
   }
 
   async function loadData() {
-    const data = await Api.call('bootstrap', {});
+    const data = await Api.call('controlRoomBootstrap', {});
     teams = data.teams;
-    members = data.members;
+    memberCount = data.memberCount || 0;
     serviceNeeds = data.serviceNeeds;
     assignments = data.assignments;
     incidents = data.incidents || [];
@@ -97,7 +91,7 @@ const ControlRoom = (function () {
 
     let html =
       '<div class="stat-row">' +
-      '<div class="stat"><div class="stat-num">' + members.length + '</div><div class="stat-label">Volunteers registered</div></div>' +
+      '<div class="stat"><div class="stat-num">' + memberCount + '</div><div class="stat-label">Volunteers registered</div></div>' +
       '<div class="stat"><div class="stat-num">' + activeCount + '</div><div class="stat-label">Currently signed in</div></div>' +
       '<div class="stat"><div class="stat-num">' + openIssues.length + '</div><div class="stat-label">Open issues</div></div>' +
       '</div>';

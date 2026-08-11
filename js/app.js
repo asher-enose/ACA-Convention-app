@@ -1,43 +1,7 @@
 const App = (function () {
-  let activeWatcherStop = null;
-
   function root() { return document.getElementById('app'); }
 
-  // Screens that watch for updates (via Api.watchForUpdates) register
-  // their stop() function here so it gets shut down the moment the user
-  // navigates away, instead of polling forever in the background.
-  function setActiveWatcher(stopFn) {
-    stopActiveWatcher();
-    activeWatcherStop = stopFn;
-  }
-
-  function stopActiveWatcher() {
-    if (activeWatcherStop) { activeWatcherStop(); activeWatcherStop = null; }
-    hideUpdateBanner();
-  }
-
-  function showUpdateBanner(onRefresh) {
-    let el = document.getElementById('update-banner');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'update-banner';
-      document.body.appendChild(el);
-    }
-    el.innerHTML = 'New data is available. <button class="btn-small" id="update-banner-btn">Refresh</button>';
-    el.className = 'update-banner show';
-    document.getElementById('update-banner-btn').addEventListener('click', function () {
-      hideUpdateBanner();
-      onRefresh();
-    });
-  }
-
-  function hideUpdateBanner() {
-    const el = document.getElementById('update-banner');
-    if (el) el.className = 'update-banner';
-  }
-
   function goHome() {
-    stopActiveWatcher();
     root().innerHTML =
       '<div class="screen landing">' +
       '<h1>Convention Volunteers</h1>' +
@@ -77,10 +41,7 @@ const App = (function () {
     showToast(message, 'error');
   }
 
-  return {
-    goHome: goHome, showToast: showToast, showError: showError,
-    setActiveWatcher: setActiveWatcher, showUpdateBanner: showUpdateBanner, hideUpdateBanner: hideUpdateBanner
-  };
+  return { goHome: goHome, showToast: showToast, showError: showError };
 })();
 
 document.addEventListener('DOMContentLoaded', function () {

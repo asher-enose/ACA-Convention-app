@@ -51,21 +51,10 @@ function doGet(e) {
   return jsonOut({ ok: true, result: { status: 'Convention Volunteer API is running' } });
 }
 
-// Actions that change sheet data -- doPost bumps the shared version marker
-// after any of these succeed, so watchForUpdates() on the frontend can
-// detect "something changed" with one cheap call instead of re-fetching
-// everything on a timer. Read-only actions (bootstrap, lookups, etc.)
-// aren't listed since nothing changed for anyone else to notice.
-var MUTATING_ACTIONS = [
-  'addTeam', 'saveMember', 'deleteMember', 'saveServiceNeeds', 'saveAssignments',
-  'saveIncident', 'saveContact', 'deleteContact', 'signIn', 'signOut'
-];
-
 function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents);
     var result = route(body.action, body);
-    if (MUTATING_ACTIONS.indexOf(body.action) !== -1) touchVersion_();
     return jsonOut({ ok: true, result: result });
   } catch (err) {
     return jsonOut({ ok: false, error: err.message });
@@ -76,17 +65,10 @@ function jsonOut(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
-function touchVersion_() {
-  PropertiesService.getScriptProperties().setProperty('DATA_VERSION', String(new Date().getTime()));
-}
-
-function checkVersion() {
-  return { version: PropertiesService.getScriptProperties().getProperty('DATA_VERSION') || '' };
-}
-
 function route(action, body) {
   switch (action) {
     case 'bootstrap': return bootstrap();
+    case 'controlRoomBootstrap': return controlRoomBootstrap();
     case 'addTeam': return addTeam(body.teamName, body.leaderName);
     case 'saveMember': return saveMember(body.member);
     case 'deleteMember': return deleteMember(body.memberId);
@@ -99,7 +81,6 @@ function route(action, body) {
     case 'signIn': return signIn(body.name, body.phone, body.department);
     case 'signOut': return signOut(body.id);
     case 'attendanceBootstrap': return attendanceBootstrap();
-    case 'checkVersion': return checkVersion();
     default: throw new Error('Unknown action: ' + action);
   }
 }
@@ -184,6 +165,50 @@ function bootstrap() {
 
   return {
     teams: teams, members: members, serviceNeeds: serviceNeeds, assignments: assignments,
+    incidents: incidents, contacts: contacts, attendance: attendance
+  };
+}
+
+// Control Room never needs individual member details (name/phone/
+// availability) -- just a headcount for the stat tile -- so this skips
+// reading Members and Availability entirely (the two largest sheets) and
+// uses a row-count instead of a full read for the count. Meaningfully
+// faster than bootstrap() once those sheets have hundreds/thousands of
+// rows, since Control Room is the screen people keep open and reload most
+// during the event.
+function controlRoomBootstrap() {
+  var teams = sheetToObjects('Teams').map(function (t) {
+    return { id: t.TeamId, name: t.TeamName, leaderName: t.LeaderName };
+  });
+
+  var membersSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Members');
+  var memberCount = Math.max(0, membersSheet.getLastRow() - 1);
+
+  var serviceNeeds = sheetToObjects('ServiceNeeds').map(function (n) {
+    return { sessionId: n.SessionId, serviceId: n.ServiceId, requiredCount: Number(n.RequiredCount) || 0 };
+  });
+
+  var assignments = sheetToObjects('Assignments').map(function (a) {
+    return { id: a.AssignmentId, sessionId: a.SessionId, serviceId: a.ServiceId, teamId: a.TeamId, memberId: a.MemberId };
+  });
+
+  var incidents = sheetToObjects('Incidents').map(function (i) {
+    return {
+      id: i.IncidentId, description: i.Description, location: i.Location, reportedBy: i.ReportedBy,
+      status: i.Status || 'open', priority: i.Priority || 'Medium', assignedTo: i.AssignedTo || '', createdAt: i.CreatedAt
+    };
+  });
+
+  var contacts = sheetToObjects('Contacts').map(function (c) {
+    return { id: c.ContactId, name: c.Name, role: c.Role, phone: c.Phone, notes: c.Notes };
+  });
+
+  var attendance = sheetToObjects('Attendance').map(function (a) {
+    return { id: a.AttendanceId, name: a.Name, phone: a.Phone, department: a.Department, status: a.Status, signInAt: a.SignInAt, signOutAt: a.SignOutAt };
+  });
+
+  return {
+    teams: teams, memberCount: memberCount, serviceNeeds: serviceNeeds, assignments: assignments,
     incidents: incidents, contacts: contacts, attendance: attendance
   };
 }

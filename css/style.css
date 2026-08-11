@@ -221,25 +221,6 @@ td.sessions-cell .chip { padding: 2px 8px; font-size: 0.8rem; }
 #toast.show { bottom: 24px; }
 #toast.error { background: #9c3a2f; }
 
-#update-banner {
-  position: fixed;
-  top: -60px;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  background: var(--accent);
-  color: #fff;
-  padding: 10px 16px;
-  font-size: 0.9rem;
-  transition: top 0.25s ease;
-  z-index: 100;
-}
-#update-banner.show { top: 0; }
-#update-banner .btn-small { background: #fff; color: var(--accent); border-color: #fff; }
-
 @media print {
   .link-back, .tabs, .roster-controls, .add-select, .chip-remove, #toast { display: none !important; }
 }

@@ -10,12 +10,6 @@ const Attendance = (function () {
     try {
       await loadData_();
       render();
-      App.setActiveWatcher(Api.watchForUpdates(function () {
-        App.showUpdateBanner(async function () {
-          await loadData_();
-          render();
-        });
-      }, 20000));
     } catch (err) {
       root().innerHTML = '<div class="screen"><p class="warning">' + escapeHtml(err.message) + '</p></div>';
     }
