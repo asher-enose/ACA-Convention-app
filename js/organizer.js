@@ -525,13 +525,25 @@ const Organizer = (function () {
           html += '<div class="roster-slot">';
           html += '<div class="roster-slot-head"><strong>' + escapeHtml(service.label) + '</strong> ' +
             '<span class="' + (short ? 'warning' : 'success') + '">' + assigned.length + ' / ' + required + '</span></div>';
-          html += '<div class="chip-row">';
-          assigned.forEach(function (a) {
-            const am = member(a.memberId);
-            html += '<span class="chip">' + escapeHtml(memberName(a.memberId)) + ' <span class="muted">(' + escapeHtml(teamName(a.teamId)) + (am && am.phone ? ' · ' + escapeHtml(am.phone) : '') + ')</span>' +
-              ' <button class="chip-remove" data-remove-session="' + session.id + '" data-remove-service="' + service.id + '" data-remove-member="' + a.memberId + '">&times;</button></span>';
+
+          const byTeam = {};
+          assigned.forEach(function (a) { (byTeam[a.teamId] = byTeam[a.teamId] || []).push(a); });
+          var orderedTeamIds = teams.map(function (t) { return t.id; })
+            .concat(Object.keys(byTeam).filter(function (id) { return teams.every(function (t) { return t.id !== id; }); }));
+
+          orderedTeamIds.forEach(function (teamId) {
+            const teamAssignments = byTeam[teamId];
+            if (!teamAssignments || !teamAssignments.length) return;
+            html += '<div class="team-group-label muted">' + escapeHtml(teamName(teamId)) + '</div>';
+            html += '<div class="chip-row">';
+            teamAssignments.forEach(function (a) {
+              const am = member(a.memberId);
+              html += '<span class="chip">' + escapeHtml(memberName(a.memberId)) + (am && am.phone ? ' <span class="muted">(' + escapeHtml(am.phone) + ')</span>' : '') +
+                ' <button class="chip-remove" data-remove-session="' + session.id + '" data-remove-service="' + service.id + '" data-remove-member="' + a.memberId + '">&times;</button></span>';
+            });
+            html += '</div>';
           });
-          html += '</div>';
+          if (!assigned.length) html += '<div class="chip-row"></div>';
           html += '<select class="add-select" data-add-session="' + session.id + '" data-add-service="' + service.id + '">' +
             '<option value="">+ Add volunteer…</option>' +
             eligible.map(function (m) { return '<option value="' + m.id + '">' + escapeHtml(m.name) + ' (' + escapeHtml(teamName(m.teamId)) + ')</option>'; }).join('') +
