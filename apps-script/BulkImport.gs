@@ -960,6 +960,101 @@ function bulkImportFoodServingVolunteers() {
   );
 }
 
+// Adds Bro. Prasad's team (26 people). Registered for MEALS on their
+// listed days, except Charles who is down for "fire safety" — mapped to
+// CROWD (Crowd Management) instead of MEALS for all his listed days, since
+// Fire Safety isn't one of the app's service categories.
+// Additive only, same as bulkImportFoodServingVolunteers — safe to re-run.
+function importBroPrasadTeam() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var teams = [
+    ['team-prasad', "Bro. Prasad's Team", 'Bro. Prasad', '2026-08-11']
+  ];
+
+  var members = [
+    ['PRA-01', 'team-prasad', 'Solomon Raja', '9600110628', '', '', '2026-08-11'],
+    ['PRA-02', 'team-prasad', 'Angel', '9789043902', '', '', '2026-08-11'],
+    ['PRA-03', 'team-prasad', 'Santha Kumar', '9003195809', '', '', '2026-08-11'],
+    ['PRA-04', 'team-prasad', 'Priyadharshini', '9566242764', '', '', '2026-08-11'],
+    ['PRA-05', 'team-prasad', 'Charles', '8925448860', '', '', '2026-08-11'],
+    ['PRA-06', 'team-prasad', 'Angel (2)', '8939048044', '', '', '2026-08-11'],
+    ['PRA-07', 'team-prasad', 'Sam Sundaram', '9787434439', '', '', '2026-08-11'],
+    ['PRA-08', 'team-prasad', 'Hephzibah', '8939340057', '', '', '2026-08-11'],
+    ['PRA-09', 'team-prasad', 'Sathish Kumar', '9791031912', '', '', '2026-08-11'],
+    ['PRA-10', 'team-prasad', 'Manjula', '7358651713', '', '', '2026-08-11'],
+    ['PRA-11', 'team-prasad', 'Jeyan', '9094387282', '', '', '2026-08-11'],
+    ['PRA-12', 'team-prasad', 'Sara', '8939615948', '', '', '2026-08-11'],
+    ['PRA-13', 'team-prasad', 'Meshack', '9677100481', '', '', '2026-08-11'],
+    ['PRA-14', 'team-prasad', 'Devapriya', '9677100481', '', '', '2026-08-11'],
+    ['PRA-15', 'team-prasad', 'Lalitha Saral', '9361099693', '', '', '2026-08-11'],
+    ['PRA-16', 'team-prasad', 'Barath', '9361099693', '', '', '2026-08-11'],
+    ['PRA-17', 'team-prasad', 'Kishore', '8939074099', '', '', '2026-08-11'],
+    ['PRA-18', 'team-prasad', 'Lalitha', '8939074099', '', '', '2026-08-11'],
+    ['PRA-19', 'team-prasad', 'Merwin', '8680869094', '', '', '2026-08-11'],
+    ['PRA-20', 'team-prasad', 'Angel (3)', '8680869094', '', '', '2026-08-11'],
+    ['PRA-21', 'team-prasad', 'Julie', '8124543760', '', '', '2026-08-11'],
+    ['PRA-22', 'team-prasad', 'Miracle Raj', '8680869094', '', '', '2026-08-11'],
+    ['PRA-23', 'team-prasad', 'Sathyaseelan', '7200575550', '', '', '2026-08-11'],
+    ['PRA-24', 'team-prasad', 'Susan', '8610831565', '', '', '2026-08-11'],
+    ['PRA-25', 'team-prasad', 'Joshua', '7395981522', '', '', '2026-08-11'],
+    ['PRA-26', 'team-prasad', 'Jemima', '7395981522', '', '', '2026-08-11']
+  ];
+
+  // DED = Dedication Service (Aug 13 evening); D1/D2/D3 = Convention Day 1/2/3
+  // (Aug 14/15/16), all three meal sessions since the source sheet only
+  // tracked "yes" per whole day, not per meal.
+  var DED = ['D1-EVE'];
+  var D1 = ['D2-MOR', 'D2-AFT', 'D2-EVE'];
+  var D2 = ['D3-MOR', 'D3-AFT', 'D3-EVE'];
+  var D3 = ['D4-MOR', 'D4-AFT', 'D4-EVE'];
+
+  var plan = [
+    ['PRA-01', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-02', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-03', DED.concat(D1, D2, D3), 'MEALS'],
+    ['PRA-04', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-05', DED.concat(D1, D2, D3), 'CROWD'],
+    ['PRA-06', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-07', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-08', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-09', DED.concat(D1, D2, D3), 'MEALS'],
+    ['PRA-10', D2, 'MEALS'],
+    ['PRA-11', D1.concat(D2), 'MEALS'],
+    ['PRA-12', D1.concat(D2), 'MEALS'],
+    ['PRA-13', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-14', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-15', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-16', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-17', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-18', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-19', D1.concat(D2), 'MEALS'],
+    ['PRA-20', D1.concat(D2), 'MEALS'],
+    ['PRA-21', D1.concat(D2), 'MEALS'],
+    ['PRA-22', D1.concat(D2), 'MEALS'],
+    ['PRA-23', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-24', D1.concat(D2, D3), 'MEALS'],
+    ['PRA-25', D1.concat(D2), 'MEALS'],
+    ['PRA-26', D1.concat(D2), 'MEALS']
+  ];
+
+  var availability = [];
+  plan.forEach(function (p) {
+    p[1].forEach(function (sessionId) { availability.push([p[0], sessionId, p[2]]); });
+  });
+
+  var teamsResult = appendMissing_(ss, 'Teams', [0], teams);
+  var membersResult = appendMissing_(ss, 'Members', [0], members);
+  var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
+
+  SpreadsheetApp.getUi().alert(
+    "Bro. Prasad's Team import complete (existing rows left untouched):\n" +
+    'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
+    'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
+    'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there'
+  );
+}
+
 // Appends only the rows whose key (the values at keyCols) isn't already
 // present in the sheet. Never clears or modifies an existing row.
 function appendMissing_(ss, sheetName, keyCols, rows) {
