@@ -1306,5 +1306,5 @@ function appendMissing_(ss, sheetName, keyCols, rows) {
 }
 
 function keyOf_(row, keyCols) {
-  return keyCols.map(function (c) { return row[c]; }).join('');
+  return keyCols.map(function (c) { return row[c]; }).join('|');
 }
