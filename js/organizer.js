@@ -253,7 +253,8 @@ const Organizer = (function () {
     const teamMembers = members.filter(function (m) { return m.teamId === byTeamSelectedId; });
 
     let html =
-      '<h3>' + escapeHtml(t ? t.name : '(unknown team)') + (t && t.leaderName ? ' <span class="muted">— ' + escapeHtml(t.leaderName) + '</span>' : '') + '</h3>' +
+      '<h3>' + escapeHtml(t ? t.name : '(unknown team)') + (t && t.leaderName ? ' <span class="muted">— ' + escapeHtml(t.leaderName) + '</span>' : '') +
+      ' <span class="muted">· ' + teamMembers.length + ' member' + (teamMembers.length === 1 ? '' : 's') + '</span></h3>' +
       '<div class="tabs small">' +
       '<button class="tab-btn' + (byTeamGrouping === 'name' ? ' active' : '') + '" data-byteam-group="name">Group by Name</button>' +
       '<button class="tab-btn' + (byTeamGrouping === 'session' ? ' active' : '') + '" data-byteam-group="session">Group by Session</button>' +
@@ -538,7 +539,7 @@ const Organizer = (function () {
           orderedTeamIds.forEach(function (teamId) {
             const teamAssignments = byTeam[teamId];
             if (!teamAssignments || !teamAssignments.length) return;
-            html += '<div class="team-group-label muted">' + escapeHtml(teamName(teamId)) + '</div>';
+            html += '<div class="team-group-label muted">' + escapeHtml(teamName(teamId)) + ' · ' + teamAssignments.length + '</div>';
             html += '<div class="chip-row">';
             teamAssignments.forEach(function (a) {
               const am = member(a.memberId);

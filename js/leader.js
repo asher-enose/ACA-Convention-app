@@ -85,7 +85,7 @@ const Leader = (function () {
     root().innerHTML =
       '<div class="screen">' +
       '<button class="link-back" id="btn-back">&larr; Change team</button>' +
-      '<h2>' + escapeHtml(team.name) + '</h2>' +
+      '<h2>' + escapeHtml(team.name) + ' <span class="muted" style="font-size:0.6em;">· ' + teamMembers.length + ' member' + (teamMembers.length === 1 ? '' : 's') + '</span></h2>' +
       (team.leaderName ? '<p class="muted">Led by ' + escapeHtml(team.leaderName) + '</p>' : '') +
       '<button class="btn-primary" id="btn-add-member">+ Add member</button>' +
       '<div class="table-wrap">' +
