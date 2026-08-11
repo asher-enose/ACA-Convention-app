@@ -2,7 +2,7 @@
 
 A small static site for coordinating volunteers for the Pastors' Event (Aug 12),
 Dedication Service (Aug 13 evening), and the 3-day convention (Aug 14–16,
-breakfast/lunch/dinner). Team leaders register their members and each
+morning/afternoon/evening). Team leaders register their members and each
 member's availability; the organizer sets staffing needs and generates/edits
 the roster. Volunteers can look up their own schedule.
 
