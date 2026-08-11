@@ -159,8 +159,8 @@ const ControlRoom = (function () {
   function incidentRow_(i) {
     const resolved = i.status === 'resolved';
     return '<tr>' +
-      '<td>' + escapeHtml(i.description) + '</td>' +
-      '<td>' + escapeHtml(i.location || '') + '</td>' +
+      '<td class="wrap-cell">' + escapeHtml(i.description) + '</td>' +
+      '<td class="wrap-cell">' + escapeHtml(i.location || '') + '</td>' +
       '<td>' + escapeHtml(i.reportedBy || '') + '</td>' +
       '<td><select data-priority-for="' + i.id + '">' + PRIORITIES.map(function (p) { return '<option value="' + p + '"' + (p === (i.priority || 'Medium') ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></td>' +
       '<td><select data-assign-for="' + i.id + '"><option value=""' + (!i.assignedTo ? ' selected' : '') + '>Unassigned</option>' +

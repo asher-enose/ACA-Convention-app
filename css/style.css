@@ -126,6 +126,7 @@ table { border-collapse: collapse; width: 100%; min-width: 480px; }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; white-space: nowrap; vertical-align: top; }
 th { color: var(--muted); font-weight: 600; }
 td.sessions-cell { white-space: normal; min-width: 260px; }
+td.wrap-cell { white-space: normal; word-break: break-word; max-width: 260px; }
 td.sessions-cell .chip-row { gap: 4px; }
 td.sessions-cell .chip { padding: 2px 8px; font-size: 0.8rem; }
 
