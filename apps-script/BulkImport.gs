@@ -1296,6 +1296,10 @@ function appendMissing_(ss, sheetName, keyCols, rows) {
   var toAppend = rows.filter(function (row) { return !existingKeys[keyOf_(row, keyCols)]; });
   if (toAppend.length) {
     var startRow = sh.getLastRow() + 1;
+    var neededLastRow = startRow + toAppend.length - 1;
+    if (neededLastRow > sh.getMaxRows()) {
+      sh.insertRowsAfter(sh.getMaxRows(), neededLastRow - sh.getMaxRows());
+    }
     sh.getRange(startRow, 1, toAppend.length, toAppend[0].length).setValues(toAppend);
   }
   return { added: toAppend.length, skipped: rows.length - toAppend.length };
