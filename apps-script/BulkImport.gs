@@ -1424,10 +1424,10 @@ function importFaithfulWarriorsTeam() {
 
 // Adds the Sing Out team (27 people), led by Bro. Abraham. Per user
 // confirmation: everyone is registered for MEALS on Aug 15 Dinner
-// (D3-EVE); those marked "ok" in the sheet's 4th column are ALSO
-// registered for CROWD (Crowd Management) across every session of the
-// whole event. SNG-27 (Sis. Sivagami) had a blank date in the source
-// sheet -- no availability rows added for her, flagged below.
+// (D3-EVE), including Sis. Sivagami (blank date in the source sheet,
+// confirmed she's also Aug 15 meal serving); those marked "ok" in the
+// sheet's 4th column are ALSO registered for CROWD (Crowd Management)
+// across every session of the whole event.
 // Additive -- safe to re-run.
 function importSingOutTeam() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1477,7 +1477,6 @@ function importSingOutTeam() {
   var availability = [];
   members.forEach(function (m) {
     var id = m[0];
-    if (id === 'SNG-27') return; // blank date in source -- no commitment recorded
     availability.push([id, 'D3-EVE', 'MEALS']);
     if (OK_IDS.indexOf(id) !== -1) {
       FULL_ALL.forEach(function (sessionId) { availability.push([id, sessionId, 'CROWD']); });
@@ -1492,8 +1491,7 @@ function importSingOutTeam() {
     'Sing Out team import complete (existing rows left untouched):\n' +
     'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
     'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
-    'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there\n' +
-    'Note: Sis. Sivagami (SNG-27) has no availability recorded -- her row had a blank date.'
+    'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there'
   );
 }
 
