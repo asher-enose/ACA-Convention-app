@@ -1172,6 +1172,71 @@ function importBalanTeamMembers() {
   );
 }
 
+// Adds the Chosen Generation team (17 people), led by Bro. Mahadevan.
+// "OK" -> MEALS on that exact session. Source sheet only tracked Morning
+// and Evening per day (no Lunch/Afternoon column), so no AFT availability
+// is added for Aug 14-16 — that's accurate to what was actually opted in,
+// not a simplification. "12th" (no Mor/Eve split) is applied to both of
+// Aug 12's sessions (Breakfast and Lunch). Additive — safe to re-run.
+function importChosenGenerationTeam() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var teams = [
+    ['team-chosengen', 'Chosen Generation', 'Bro. Mahadevan', '2026-08-11']
+  ];
+
+  var members = [
+    ['CHO-01', 'team-chosengen', 'Bro. Joyel Prabahar', '8939641090', 'M', '', '2026-08-11'],
+    ['CHO-02', 'team-chosengen', 'Bro. Emil Diwahar', '9962436871', 'M', '', '2026-08-11'],
+    ['CHO-03', 'team-chosengen', 'Bro. Vijaya Kumar', '7806932504', 'M', '', '2026-08-11'],
+    ['CHO-04', 'team-chosengen', 'Bro. Prabhu', '9840963035', 'M', '', '2026-08-11'],
+    ['CHO-05', 'team-chosengen', 'Bro. Solomon', '9176332367', 'M', '', '2026-08-11'],
+    ['CHO-06', 'team-chosengen', 'Bro. C. Joseph', '7401436351', 'M', '', '2026-08-11'],
+    ['CHO-07', 'team-chosengen', 'Sis. Mala Vickraman', '8754704332', 'F', '', '2026-08-11'],
+    ['CHO-08', 'team-chosengen', 'Sis. B. Shobana', '8939596958', 'F', '', '2026-08-11'],
+    ['CHO-09', 'team-chosengen', 'Sis. Nancy Kumar', '7397344648', 'F', '', '2026-08-11'],
+    ['CHO-10', 'team-chosengen', 'Sis. Gabriel Josphine', '7449019433', 'F', '', '2026-08-11'],
+    ['CHO-11', 'team-chosengen', 'Sis. Vijaya Lakshmi Joseph', '9600783520', 'F', '', '2026-08-11'],
+    ['CHO-12', 'team-chosengen', 'Bro. Ebenezer', '9176934283', 'M', '', '2026-08-11'],
+    ['CHO-13', 'team-chosengen', 'Bro. Mughilan', '9543888552', 'M', '', '2026-08-11'],
+    ['CHO-14', 'team-chosengen', 'Bro. Samuel Jacob', '9940133625', 'M', '', '2026-08-11'],
+    ['CHO-15', 'team-chosengen', 'Bro. Saravanan', '9840171069', 'M', '', '2026-08-11'],
+    ['CHO-16', 'team-chosengen', 'Bro. Samuel Joshua', '9840388848', 'M', '', '2026-08-11'],
+    ['CHO-17', 'team-chosengen', 'Sis. Jermy', '9840388848', 'F', '', '2026-08-11']
+  ];
+
+  var FULL_ALL = ['D0-MOR', 'D0-AFT', 'D1-EVE', 'D2-MOR', 'D2-EVE', 'D3-MOR', 'D3-EVE', 'D4-MOR', 'D4-EVE'];
+  var FROM_13 = ['D1-EVE', 'D2-MOR', 'D2-EVE', 'D3-MOR', 'D3-EVE', 'D4-MOR', 'D4-EVE'];
+  var FROM_14 = ['D2-MOR', 'D2-EVE', 'D3-MOR', 'D3-EVE', 'D4-MOR', 'D4-EVE'];
+  var ONLY_15EVE = ['D3-EVE'];
+
+  var plan = [
+    ['CHO-01', FULL_ALL], ['CHO-02', FULL_ALL],
+    ['CHO-03', FROM_13], ['CHO-04', FROM_13], ['CHO-05', FROM_13], ['CHO-06', FROM_13],
+    ['CHO-07', FROM_13], ['CHO-08', FROM_13], ['CHO-09', FROM_13], ['CHO-10', FROM_13],
+    ['CHO-11', FROM_14], ['CHO-12', FROM_14],
+    ['CHO-13', FULL_ALL],
+    ['CHO-14', FROM_13], ['CHO-15', FROM_13],
+    ['CHO-16', ONLY_15EVE], ['CHO-17', ONLY_15EVE]
+  ];
+
+  var availability = [];
+  plan.forEach(function (p) {
+    p[1].forEach(function (sessionId) { availability.push([p[0], sessionId, 'MEALS']); });
+  });
+
+  var teamsResult = appendMissing_(ss, 'Teams', [0], teams);
+  var membersResult = appendMissing_(ss, 'Members', [0], members);
+  var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
+
+  SpreadsheetApp.getUi().alert(
+    'Chosen Generation import complete (existing rows left untouched):\n' +
+    'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
+    'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
+    'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there'
+  );
+}
+
 // Appends only the rows whose key (the values at keyCols) isn't already
 // present in the sheet. Never clears or modifies an existing row.
 function appendMissing_(ss, sheetName, keyCols, rows) {
