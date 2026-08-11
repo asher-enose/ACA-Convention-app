@@ -19,8 +19,9 @@ var SHEETS = {
   Availability: ['MemberId', 'SessionId', 'ServiceId'],
   ServiceNeeds: ['SessionId', 'ServiceId', 'RequiredCount'],
   Assignments: ['AssignmentId', 'SessionId', 'ServiceId', 'TeamId', 'MemberId', 'BatchId', 'CreatedAt'],
-  Incidents: ['IncidentId', 'Description', 'Location', 'ReportedBy', 'Status', 'PhotoUrl', 'CreatedAt'],
-  Contacts: ['ContactId', 'Name', 'Role', 'Phone', 'Notes', 'CreatedAt']
+  Incidents: ['IncidentId', 'Description', 'Location', 'ReportedBy', 'Status', 'Priority', 'AssignedTo', 'CreatedAt'],
+  Contacts: ['ContactId', 'Name', 'Role', 'Phone', 'Notes', 'CreatedAt'],
+  Attendance: ['AttendanceId', 'Name', 'Phone', 'Status', 'SignInAt', 'SignOutAt']
 };
 
 function setupSheet() {
@@ -76,6 +77,8 @@ function route(action, body) {
     case 'saveIncident': return saveIncident(body.incident);
     case 'saveContact': return saveContact(body.contact);
     case 'deleteContact': return deleteContact(body.contactId);
+    case 'signIn': return signIn(body.name, body.phone);
+    case 'signOut': return signOut(body.id);
     default: throw new Error('Unknown action: ' + action);
   }
 }
@@ -144,14 +147,24 @@ function bootstrap() {
   });
 
   var incidents = sheetToObjects('Incidents').map(function (i) {
-    return { id: i.IncidentId, description: i.Description, location: i.Location, reportedBy: i.ReportedBy, status: i.Status || 'open', photoUrl: i.PhotoUrl || '', createdAt: i.CreatedAt };
+    return {
+      id: i.IncidentId, description: i.Description, location: i.Location, reportedBy: i.ReportedBy,
+      status: i.Status || 'open', priority: i.Priority || 'Medium', assignedTo: i.AssignedTo || '', createdAt: i.CreatedAt
+    };
   });
 
   var contacts = sheetToObjects('Contacts').map(function (c) {
     return { id: c.ContactId, name: c.Name, role: c.Role, phone: c.Phone, notes: c.Notes };
   });
 
-  return { teams: teams, members: members, serviceNeeds: serviceNeeds, assignments: assignments, incidents: incidents, contacts: contacts };
+  var attendance = sheetToObjects('Attendance').map(function (a) {
+    return { id: a.AttendanceId, name: a.Name, phone: a.Phone, status: a.Status, signInAt: a.SignInAt, signOutAt: a.SignOutAt };
+  });
+
+  return {
+    teams: teams, members: members, serviceNeeds: serviceNeeds, assignments: assignments,
+    incidents: incidents, contacts: contacts, attendance: attendance
+  };
 }
 
 function addTeam(teamName, leaderName) {
@@ -267,14 +280,6 @@ function saveIncident(incident) {
   var id = incident.id;
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Incidents');
 
-  // A new photo (base64 from the browser) replaces any existing one; with
-  // no new photo, keep whatever URL was already on the incident (e.g. when
-  // this call is just a status toggle).
-  var photoUrl = incident.photoUrl || '';
-  if (incident.photoBase64) {
-    photoUrl = uploadIncidentPhoto_(incident.photoBase64, incident.photoMimeType);
-  }
-
   if (id) {
     var values = sh.getDataRange().getValues();
     var found = false;
@@ -282,7 +287,7 @@ function saveIncident(incident) {
       if (values[i][0] === id) {
         sh.getRange(i + 1, 1, 1, SHEETS.Incidents.length).setValues([[
           id, incident.description.trim(), incident.location || '', incident.reportedBy || '',
-          incident.status || 'open', photoUrl, values[i][6]
+          incident.status || 'open', incident.priority || 'Medium', incident.assignedTo || '', values[i][7]
         ]]);
         found = true;
         break;
@@ -293,26 +298,12 @@ function saveIncident(incident) {
     id = Utilities.getUuid();
     appendRow('Incidents', {
       IncidentId: id, Description: incident.description.trim(), Location: incident.location || '',
-      ReportedBy: incident.reportedBy || '', Status: incident.status || 'open', PhotoUrl: photoUrl, CreatedAt: new Date()
+      ReportedBy: incident.reportedBy || '', Status: incident.status || 'open',
+      Priority: incident.priority || 'Medium', AssignedTo: incident.assignedTo || '', CreatedAt: new Date()
     });
   }
 
-  return { id: id, photoUrl: photoUrl };
-}
-
-// Decodes a base64 photo from the browser, saves it into a Drive folder
-// (created on first use), makes it viewable by anyone with the link (this
-// app has no passcode, so that matches how everything else here works),
-// and returns the file's URL to store in the sheet.
-function uploadIncidentPhoto_(base64Data, mimeType) {
-  var folders = DriveApp.getFoldersByName('Convention Incident Photos');
-  var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder('Convention Incident Photos');
-
-  var bytes = Utilities.base64Decode(base64Data);
-  var blob = Utilities.newBlob(bytes, mimeType || 'image/jpeg', 'incident-' + new Date().getTime() + '.jpg');
-  var file = folder.createFile(blob);
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  return file.getUrl();
+  return { id: id };
 }
 
 function saveContact(contact) {
@@ -349,4 +340,44 @@ function deleteContact(contactId) {
   if (!contactId) throw new Error('contactId is required');
   deleteRowsWhere('Contacts', function (c) { return c.ContactId === contactId; });
   return { deleted: true };
+}
+
+// One row per person, matched by name+phone (case-insensitive on name).
+// Signing in again just updates the same row rather than creating a new
+// one, so "who's currently active" is always a straight Status === 'in'
+// filter, not something that needs de-duping across repeat sign-ins.
+function signIn(name, phone) {
+  name = (name || '').trim();
+  if (!name) throw new Error('Name is required');
+  phone = (phone || '').trim();
+
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Attendance');
+  var values = sh.getDataRange().getValues();
+  var now = new Date();
+
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][1]).trim().toLowerCase() === name.toLowerCase() && String(values[i][2]).trim() === phone) {
+      var id = values[i][0];
+      sh.getRange(i + 1, 1, 1, SHEETS.Attendance.length).setValues([[id, name, phone, 'in', now, values[i][5]]]);
+      return { id: id, status: 'in', signInAt: now.toISOString() };
+    }
+  }
+
+  var newId = Utilities.getUuid();
+  appendRow('Attendance', { AttendanceId: newId, Name: name, Phone: phone, Status: 'in', SignInAt: now, SignOutAt: '' });
+  return { id: newId, status: 'in', signInAt: now.toISOString() };
+}
+
+function signOut(id) {
+  if (!id) throw new Error('id is required');
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Attendance');
+  var values = sh.getDataRange().getValues();
+  var now = new Date();
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][0] === id) {
+      sh.getRange(i + 1, 1, 1, SHEETS.Attendance.length).setValues([[id, values[i][1], values[i][2], 'out', values[i][4], now]]);
+      return { id: id, status: 'out', signOutAt: now.toISOString() };
+    }
+  }
+  throw new Error('Attendance record not found');
 }

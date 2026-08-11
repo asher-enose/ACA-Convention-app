@@ -5,6 +5,7 @@ const ControlRoom = (function () {
   let assignments = [];
   let incidents = [];
   let contacts = [];
+  let attendance = [];
   let activeTab = 'dashboard';
   let selectedSessionId = null;
   let editingContactId = null;
@@ -24,6 +25,7 @@ const ControlRoom = (function () {
     assignments = data.assignments;
     incidents = data.incidents || [];
     contacts = data.contacts || [];
+    attendance = data.attendance || [];
   }
 
   function root() { return document.getElementById('app'); }
@@ -54,35 +56,6 @@ const ControlRoom = (function () {
     return SESSIONS[0].id;
   }
 
-  // Shrinks a photo (e.g. straight from a phone camera, which can be
-  // several MB) down to a JPEG capped at maxDim on its longest side, so the
-  // upload is fast and stays well under Apps Script's request size limits.
-  // Resolves to { base64, mimeType } with the base64 already stripped of
-  // its "data:image/jpeg;base64," prefix.
-  function compressImageFile_(file, maxDim, quality) {
-    return new Promise(function (resolve, reject) {
-      const reader = new FileReader();
-      reader.onerror = function () { reject(new Error('Could not read the photo file.')); };
-      reader.onload = function () {
-        const img = new Image();
-        img.onerror = function () { reject(new Error('Could not load the photo.')); };
-        img.onload = function () {
-          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-          const w = Math.round(img.width * scale);
-          const h = Math.round(img.height * scale);
-          const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
-          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-          const dataUrl = canvas.toDataURL('image/jpeg', quality);
-          resolve({ base64: dataUrl.split(',')[1], mimeType: 'image/jpeg' });
-        };
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
   // ---- shell / tabs ------------------------------------------------------
 
   function render() {
@@ -91,7 +64,7 @@ const ControlRoom = (function () {
       '<button class="link-back" id="btn-home">&larr; Home</button>' +
       '<h2>Control Room</h2>' +
       '<div class="tabs">' +
-      tabBtn('dashboard', 'Dashboard') + tabBtn('incidents', 'Incidents') + tabBtn('contacts', 'Contacts') +
+      tabBtn('dashboard', 'Dashboard') + tabBtn('incidents', 'Incidents') + tabBtn('attendance', 'Attendance') + tabBtn('contacts', 'Contacts') +
       '</div>' +
       '<div id="tab-content"></div>' +
       '</div>';
@@ -100,6 +73,7 @@ const ControlRoom = (function () {
       btn.addEventListener('click', function () { activeTab = btn.getAttribute('data-tab'); render(); });
     });
     if (activeTab === 'incidents') renderIncidents();
+    else if (activeTab === 'attendance') renderAttendance();
     else if (activeTab === 'contacts') renderContacts();
     else renderDashboard();
   }
@@ -111,16 +85,23 @@ const ControlRoom = (function () {
   // ---- dashboard ------------------------------------------------------
 
   function renderDashboard() {
-    const openIncidents = incidents.filter(function (i) { return i.status !== 'resolved'; }).length;
+    const openIssues = incidents.filter(function (i) { return i.status !== 'resolved'; })
+      .sort(function (a, b) { return priorityWeight_(b.priority) - priorityWeight_(a.priority) || new Date(b.createdAt || 0) - new Date(a.createdAt || 0); });
+    const activeCount = attendance.filter(function (a) { return a.status === 'in'; }).length;
     const session = sessionById(selectedSessionId) || SESSIONS[0];
 
     let html =
       '<div class="stat-row">' +
       '<div class="stat"><div class="stat-num">' + members.length + '</div><div class="stat-label">Volunteers registered</div></div>' +
-      '<div class="stat"><div class="stat-num">' + teams.length + '</div><div class="stat-label">Teams</div></div>' +
-      '<div class="stat"><div class="stat-num">' + openIncidents + '</div><div class="stat-label">Open incidents</div></div>' +
-      '</div>' +
-      '<div class="form" style="max-width:360px;margin:16px 0;"><label>Session<select id="cr-session">' +
+      '<div class="stat"><div class="stat-num">' + activeCount + '</div><div class="stat-label">Currently signed in</div></div>' +
+      '<div class="stat"><div class="stat-num">' + openIssues.length + '</div><div class="stat-label">Open issues</div></div>' +
+      '</div>';
+
+    html += '<h3>Open issues <span class="muted">— sorted by priority</span></h3>';
+    html += '<div class="table-wrap"><table><thead><tr><th>What</th><th>Location</th><th>Reported by</th><th>Priority</th><th>Assigned to</th><th>Status</th><th></th></tr></thead>' +
+      '<tbody>' + (openIssues.map(function (i) { return incidentRow_(i); }).join('') || '<tr><td colspan="7" class="muted">No open issues.</td></tr>') + '</tbody></table></div>';
+
+    html += '<div class="form" style="max-width:360px;margin:16px 0;"><label>Session<select id="cr-session">' +
       SESSIONS.map(function (s) { return '<option value="' + s.id + '"' + (s.id === selectedSessionId ? ' selected' : '') + '>' + escapeHtml(s.label) + ' — ' + escapeHtml(s.event) + '</option>'; }).join('') +
       '</select></label></div>';
 
@@ -141,27 +122,23 @@ const ControlRoom = (function () {
       selectedSessionId = this.value;
       renderDashboard();
     });
+    bindIncidentRowControls_();
   }
 
   // ---- incidents ------------------------------------------------------
 
+  const PRIORITIES = ['High', 'Medium', 'Low'];
+  function priorityWeight_(p) { const i = PRIORITIES.indexOf(p); return i === -1 ? 1 : (PRIORITIES.length - i); }
+
   function renderIncidents() {
     const sorted = incidents.slice().sort(function (a, b) {
       if ((a.status === 'resolved') !== (b.status === 'resolved')) return a.status === 'resolved' ? 1 : -1;
+      const pw = priorityWeight_(b.priority) - priorityWeight_(a.priority);
+      if (pw !== 0) return pw;
       return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     });
 
-    const rows = sorted.map(function (i) {
-      const resolved = i.status === 'resolved';
-      return '<tr>' +
-        '<td>' + escapeHtml(i.description) + '</td>' +
-        '<td>' + escapeHtml(i.location || '') + '</td>' +
-        '<td>' + escapeHtml(i.reportedBy || '') + '</td>' +
-        '<td>' + (i.photoUrl ? '<a href="' + escapeHtml(i.photoUrl) + '" target="_blank" rel="noopener">View photo</a>' : '') + '</td>' +
-        '<td><span class="' + (resolved ? 'success' : 'warning') + '">' + (resolved ? 'RESOLVED' : 'OPEN') + '</span></td>' +
-        '<td><button class="btn-small" data-toggle-incident="' + i.id + '">' + (resolved ? 'Reopen' : 'Resolve') + '</button></td>' +
-        '</tr>';
-    }).join('');
+    const rows = sorted.map(function (i) { return incidentRow_(i); }).join('');
 
     document.getElementById('tab-content').innerHTML =
       '<h3>Report an incident</h3>' +
@@ -169,63 +146,55 @@ const ControlRoom = (function () {
       '<label>What happened<input type="text" id="inc-description" required></label>' +
       '<label>Location<input type="text" id="inc-location"></label>' +
       '<label>Reported by<input type="text" id="inc-reported-by"></label>' +
-      '<label>Photo (optional)<input type="file" id="inc-photo" accept="image/*" capture="environment"></label>' +
+      '<label>Priority<select id="inc-priority">' + PRIORITIES.map(function (p) { return '<option value="' + p + '"' + (p === 'Medium' ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></label>' +
       '<div class="form-actions"><button type="submit" class="btn-primary" id="btn-submit-incident">Log incident</button></div>' +
       '</form>' +
       '<h3>Incident log</h3>' +
-      '<div class="table-wrap"><table><thead><tr><th>What</th><th>Location</th><th>Reported by</th><th>Photo</th><th>Status</th><th></th></tr></thead>' +
-      '<tbody>' + (rows || '<tr><td colspan="6" class="muted">No incidents logged.</td></tr>') + '</tbody></table></div>';
+      '<div class="table-wrap"><table><thead><tr><th>What</th><th>Location</th><th>Reported by</th><th>Priority</th><th>Assigned to</th><th>Status</th><th></th></tr></thead>' +
+      '<tbody>' + (rows || '<tr><td colspan="7" class="muted">No incidents logged.</td></tr>') + '</tbody></table></div>';
 
+    bindIncidentForm_();
+    bindIncidentRowControls_();
+  }
+
+  function incidentRow_(i) {
+    const resolved = i.status === 'resolved';
+    return '<tr>' +
+      '<td>' + escapeHtml(i.description) + '</td>' +
+      '<td>' + escapeHtml(i.location || '') + '</td>' +
+      '<td>' + escapeHtml(i.reportedBy || '') + '</td>' +
+      '<td><select data-priority-for="' + i.id + '">' + PRIORITIES.map(function (p) { return '<option value="' + p + '"' + (p === (i.priority || 'Medium') ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></td>' +
+      '<td><select data-assign-for="' + i.id + '"><option value=""' + (!i.assignedTo ? ' selected' : '') + '>Unassigned</option>' +
+      contacts.map(function (c) { return '<option value="' + escapeHtml(c.name) + '"' + (c.name === i.assignedTo ? ' selected' : '') + '>' + escapeHtml(c.name) + '</option>'; }).join('') +
+      '</select></td>' +
+      '<td><span class="' + (resolved ? 'success' : 'warning') + '">' + (resolved ? 'CLOSED' : 'OPEN') + '</span></td>' +
+      '<td><button class="btn-small" data-toggle-incident="' + i.id + '">' + (resolved ? 'Reopen' : 'Close') + '</button></td>' +
+      '</tr>';
+  }
+
+  function bindIncidentForm_() {
     document.getElementById('form-incident').addEventListener('submit', async function (ev) {
       ev.preventDefault();
       const description = document.getElementById('inc-description').value.trim();
       if (!description) return;
-
-      const submitBtn = document.getElementById('btn-submit-incident');
-      const photoFile = document.getElementById('inc-photo').files[0];
-      let photoBase64, photoMimeType;
-
-      if (photoFile) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Processing photo…';
-        try {
-          const compressed = await compressImageFile_(photoFile, 1280, 0.7);
-          photoBase64 = compressed.base64;
-          photoMimeType = compressed.mimeType;
-        } catch (err) {
-          App.showError('Could not process photo: ' + err.message);
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Log incident';
-          return;
-        }
-      }
-
       const incident = {
         description: description,
         location: document.getElementById('inc-location').value.trim(),
         reportedBy: document.getElementById('inc-reported-by').value.trim(),
-        status: 'open',
-        photoBase64: photoBase64,
-        photoMimeType: photoMimeType
+        priority: document.getElementById('inc-priority').value,
+        assignedTo: '',
+        status: 'open'
       };
       try {
-        submitBtn.disabled = true;
-        submitBtn.textContent = photoFile ? 'Uploading photo…' : 'Saving…';
         const result = await Api.call('saveIncident', { incident: incident });
-        incidents.push({
-          id: result.id, description: incident.description, location: incident.location,
-          reportedBy: incident.reportedBy, status: incident.status,
-          photoUrl: result.photoUrl || '', createdAt: new Date().toISOString()
-        });
+        incidents.push(Object.assign({}, incident, { id: result.id, createdAt: new Date().toISOString() }));
         App.showToast('Incident logged.');
         renderIncidents();
-      } catch (err) {
-        App.showError(err.message);
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Log incident';
-      }
+      } catch (err) { App.showError(err.message); }
     });
+  }
 
+  function bindIncidentRowControls_() {
     root().querySelectorAll('[data-toggle-incident]').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         const id = btn.getAttribute('data-toggle-incident');
@@ -238,6 +207,141 @@ const ControlRoom = (function () {
         } catch (err) { App.showError(err.message); }
       });
     });
+    root().querySelectorAll('[data-priority-for]').forEach(function (sel) {
+      sel.addEventListener('change', async function () {
+        const id = sel.getAttribute('data-priority-for');
+        const incident = incidents.find(function (i) { return i.id === id; });
+        const newPriority = sel.value;
+        try {
+          await Api.call('saveIncident', { incident: Object.assign({}, incident, { priority: newPriority }) });
+          incident.priority = newPriority;
+          if (activeTab === 'dashboard') renderDashboard(); else renderIncidents();
+        } catch (err) { App.showError(err.message); }
+      });
+    });
+    root().querySelectorAll('[data-assign-for]').forEach(function (sel) {
+      sel.addEventListener('change', async function () {
+        const id = sel.getAttribute('data-assign-for');
+        const incident = incidents.find(function (i) { return i.id === id; });
+        const newAssignee = sel.value;
+        try {
+          await Api.call('saveIncident', { incident: Object.assign({}, incident, { assignedTo: newAssignee }) });
+          incident.assignedTo = newAssignee;
+          if (activeTab === 'dashboard') renderDashboard(); else renderIncidents();
+        } catch (err) { App.showError(err.message); }
+      });
+    });
+  }
+
+  // ---- attendance ------------------------------------------------------
+  // One row per person (matched by name+phone); sign-in updates that same
+  // row rather than piling up history, so "currently active" is always
+  // just a Status === 'in' filter.
+
+  function renderAttendance() {
+    const active = attendance.filter(function (a) { return a.status === 'in'; })
+      .sort(function (a, b) { return new Date(b.signInAt || 0) - new Date(a.signInAt || 0); });
+    const recentlyOut = attendance.filter(function (a) { return a.status !== 'in'; })
+      .sort(function (a, b) { return new Date(b.signOutAt || 0) - new Date(a.signOutAt || 0); })
+      .slice(0, 20);
+
+    const knownNames = Array.from(new Set(
+      members.map(function (m) { return m.name; }).concat(contacts.map(function (c) { return c.name; }))
+    )).filter(Boolean).sort();
+
+    let html =
+      '<h3>Sign in / Sign out</h3>' +
+      '<p class="muted">Type your name (and phone if someone else shares your name) and tap Sign In when you arrive, Sign Out when you leave.</p>' +
+      '<form id="form-attendance" class="form" style="max-width:420px;">' +
+      '<label>Name<input type="text" id="att-name" list="attendance-name-options" required></label>' +
+      '<datalist id="attendance-name-options">' + knownNames.map(function (n) { return '<option value="' + escapeHtml(n) + '">'; }).join('') + '</datalist>' +
+      '<label>Phone (optional)<input type="tel" id="att-phone"></label>' +
+      '<div class="form-actions">' +
+      '<button type="submit" class="btn-primary" id="btn-sign-in">Sign In</button> ' +
+      '<button type="button" class="btn-secondary" id="btn-sign-out">Sign Out</button>' +
+      '</div></form>' +
+
+      '<h3>Currently signed in <span class="muted">— ' + active.length + '</span></h3>' +
+      '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Signed in</th><th></th></tr></thead>' +
+      '<tbody>' + (active.map(function (a) {
+        return '<tr><td>' + escapeHtml(a.name) + '</td><td>' + escapeHtml(a.phone || '') + '</td>' +
+          '<td>' + formatTime_(a.signInAt) + '</td>' +
+          '<td><button class="btn-small" data-attendance-signout="' + a.id + '">Sign Out</button></td></tr>';
+      }).join('') || '<tr><td colspan="4" class="muted">No one signed in yet.</td></tr>') + '</tbody></table></div>';
+
+    if (recentlyOut.length) {
+      html += '<h3>Recently signed out</h3>' +
+        '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Signed out</th></tr></thead>' +
+        '<tbody>' + recentlyOut.map(function (a) {
+          return '<tr><td>' + escapeHtml(a.name) + '</td><td>' + escapeHtml(a.phone || '') + '</td><td>' + formatTime_(a.signOutAt) + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+
+    document.getElementById('tab-content').innerHTML = html;
+
+    document.getElementById('form-attendance').addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      await signInFromForm_();
+    });
+    document.getElementById('btn-sign-out').addEventListener('click', async function () {
+      await signOutFromForm_();
+    });
+
+    root().querySelectorAll('[data-attendance-signout]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        const id = btn.getAttribute('data-attendance-signout');
+        try {
+          const result = await Api.call('signOut', { id: id });
+          const rec = attendance.find(function (a) { return a.id === id; });
+          rec.status = 'out';
+          rec.signOutAt = result.signOutAt;
+          App.showToast('Signed out.');
+          renderAttendance();
+        } catch (err) { App.showError(err.message); }
+      });
+    });
+  }
+
+  async function signInFromForm_() {
+    const name = document.getElementById('att-name').value.trim();
+    if (!name) return;
+    const phone = document.getElementById('att-phone').value.trim();
+    try {
+      const result = await Api.call('signIn', { name: name, phone: phone });
+      const existing = attendance.find(function (a) { return a.id === result.id; });
+      if (existing) {
+        existing.status = 'in';
+        existing.signInAt = result.signInAt;
+      } else {
+        attendance.push({ id: result.id, name: name, phone: phone, status: 'in', signInAt: result.signInAt, signOutAt: '' });
+      }
+      App.showToast(name + ' signed in.');
+      renderAttendance();
+    } catch (err) { App.showError(err.message); }
+  }
+
+  async function signOutFromForm_() {
+    const name = document.getElementById('att-name').value.trim();
+    const phone = document.getElementById('att-phone').value.trim();
+    if (!name) return;
+    const rec = attendance.find(function (a) {
+      return a.name.trim().toLowerCase() === name.toLowerCase() && (a.phone || '') === phone;
+    });
+    if (!rec) { App.showError('No matching sign-in found for that name/phone.'); return; }
+    try {
+      const result = await Api.call('signOut', { id: rec.id });
+      rec.status = 'out';
+      rec.signOutAt = result.signOutAt;
+      App.showToast(name + ' signed out.');
+      renderAttendance();
+    } catch (err) { App.showError(err.message); }
+  }
+
+  function formatTime_(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    return d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
   // ---- contacts ------------------------------------------------------

@@ -90,15 +90,17 @@ set the source to the `main` branch, root folder. Your site will be live at
     back to the sheet; Export CSV / Print are available for handing out
     physical schedules.
 - **Control Room**: for whoever's staffing live event coordination.
-  - *Dashboard* — required vs. filled per service for a chosen session
-    (defaults to a best guess at the current one based on the clock), as a
-    quick status board.
-  - *Incidents* — log a problem as it happens (what, where, reported by,
-    an optional photo straight from the phone camera) and mark it
-    resolved/reopened; the open ones sort to the top. Photos are
-    compressed in the browser before upload and stored in a Drive
-    folder called "Convention Incident Photos"; the sheet only holds
-    the link.
+  - *Dashboard* — open issues sorted by priority (with inline priority/
+    assignment controls and a Close button) at the top, then required
+    vs. filled per service for a chosen session (defaults to a best
+    guess at the current one based on the clock), as a quick status
+    board.
+  - *Incidents* — log a problem as it happens (what, where, reported
+    by, priority); assign it to anyone in Contacts from a dropdown,
+    change its priority, or close/reopen it, all inline in the table.
+  - *Attendance* — anyone can sign themselves in or out by name (with
+    phone as a tiebreaker for shared names); shows who's currently
+    signed in and a short recent sign-out history.
   - *Contacts* — a quick-reference list of key phone numbers (medical,
     security, coordinators) that anyone can add to or remove from.
 - **Check my schedule**: a volunteer enters their name and phone and sees
