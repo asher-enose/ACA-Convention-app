@@ -1743,6 +1743,43 @@ function importShiningStarsTeam() {
   );
 }
 
+// Adds 13 members to the EXISTING Bro. Charles team (TeamId below,
+// already in the sheet -- this does not touch the Teams tab). No phone
+// numbers given. Names have the Sis./Bro. prefix stripped per request
+// (Sex is still recorded separately from the original prefix). All MEALS,
+// Aug 14 Lunch (D2-AFT) only. Additive -- safe to re-run.
+function importCharlesTeamMembers() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var TEAM_ID = '32a8539f-1be9-4fd2-8944-86fdebdf7e93';
+
+  var members = [
+    ['CHR-01', TEAM_ID, 'Rebecca', '', 'F', '', '2026-08-13'],
+    ['CHR-02', TEAM_ID, 'Isaac', '', 'M', '', '2026-08-13'],
+    ['CHR-03', TEAM_ID, 'Malathi', '', 'F', '', '2026-08-13'],
+    ['CHR-04', TEAM_ID, 'Nisha', '', 'F', '', '2026-08-13'],
+    ['CHR-05', TEAM_ID, 'Vanitha', '', 'F', '', '2026-08-13'],
+    ['CHR-06', TEAM_ID, 'Heba', '', 'F', '', '2026-08-13'],
+    ['CHR-07', TEAM_ID, 'Rosy', '', 'F', '', '2026-08-13'],
+    ['CHR-08', TEAM_ID, 'Selva Rani', '', 'F', '', '2026-08-13'],
+    ['CHR-09', TEAM_ID, 'Jeba Kumar', '', 'M', '', '2026-08-13'],
+    ['CHR-10', TEAM_ID, 'Premila', '', 'F', '', '2026-08-13'],
+    ['CHR-11', TEAM_ID, 'Queeni', '', 'F', '', '2026-08-13'],
+    ['CHR-12', TEAM_ID, 'Mary', '', 'F', '', '2026-08-13'],
+    ['CHR-13', TEAM_ID, 'Hepsiba', '', 'F', '', '2026-08-13']
+  ];
+
+  var availability = members.map(function (m) { return [m[0], 'D2-AFT', 'MEALS']; });
+
+  var membersResult = appendMissing_(ss, 'Members', [0], members);
+  var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
+
+  notify_(
+    "Bro. Charles team members import complete (existing rows left untouched):\n" +
+    'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
+    'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there'
+  );
+}
+
 // Appends only the rows whose key (the values at keyCols) isn't already
 // present in the sheet. Never clears or modifies an existing row.
 function appendMissing_(ss, sheetName, keyCols, rows) {
