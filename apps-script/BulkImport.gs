@@ -1672,6 +1672,77 @@ function importDepartmentContacts() {
   );
 }
 
+// Adds the ShiningStars Team (22 people), led by Bro. Prabhakar. Per the
+// source note ("Food serving and crowd management willing"), everyone is
+// registered for BOTH MEALS and CROWD on their listed days -- no per-day
+// meal time given, so each day maps to all three sessions as with other
+// day-only sheets. Additive -- safe to re-run.
+function importShiningStarsTeam() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var teams = [
+    ['team-shiningstars', 'ShiningStars Team', 'Bro. Prabhakar', '2026-08-13']
+  ];
+
+  var members = [
+    ['SHS-01', 'team-shiningstars', 'Bro. Charles Ebinesar', '8056099598', 'M', '', '2026-08-13'],
+    ['SHS-02', 'team-shiningstars', 'Sis. Crystal Rajakumari', '8778313073', 'F', '', '2026-08-13'],
+    ['SHS-03', 'team-shiningstars', 'Bro. Radhakrishnan', '9312247778', 'M', '', '2026-08-13'],
+    ['SHS-04', 'team-shiningstars', 'Sis. Rajeswari', '9312190387', 'F', '', '2026-08-13'],
+    ['SHS-05', 'team-shiningstars', 'Bro. Ramesh', '9941270738', 'M', '', '2026-08-13'],
+    ['SHS-06', 'team-shiningstars', 'Sis. Shine Ramesh', '9941450470', 'F', '', '2026-08-13'],
+    ['SHS-07', 'team-shiningstars', 'Bro. David', '9176098514', 'M', '', '2026-08-13'],
+    ['SHS-08', 'team-shiningstars', 'Sis. Sheeba David', '7339167234', 'F', '', '2026-08-13'],
+    ['SHS-09', 'team-shiningstars', 'Bro. Selvanathan', '9841749066', 'M', '', '2026-08-13'],
+    ['SHS-10', 'team-shiningstars', 'Sis. Amala Grace', '9841749066', 'F', '', '2026-08-13'],
+    ['SHS-11', 'team-shiningstars', 'Sis. Esther', '9087874902', 'F', '', '2026-08-13'],
+    ['SHS-12', 'team-shiningstars', 'Bro. Premkumar', '8939407678', 'M', '', '2026-08-13'],
+    ['SHS-13', 'team-shiningstars', 'Sis. Sophia', '9176259373', 'F', '', '2026-08-13'],
+    ['SHS-14', 'team-shiningstars', 'Bro. Isaac', '9003268176', 'M', '', '2026-08-13'],
+    ['SHS-15', 'team-shiningstars', 'Sis. Subhashini', '9003268176', 'F', '', '2026-08-13'],
+    ['SHS-16', 'team-shiningstars', 'Sis. Priya', '9962515315', 'F', '', '2026-08-13'],
+    ['SHS-17', 'team-shiningstars', 'Bro. Sekar', '9566118211', 'M', '', '2026-08-13'],
+    ['SHS-18', 'team-shiningstars', 'Sis. Mary', '9840351623', 'F', '', '2026-08-13'],
+    ['SHS-19', 'team-shiningstars', 'Bro. Saruhasan', '8015586797', 'M', '', '2026-08-13'],
+    ['SHS-20', 'team-shiningstars', 'Bro. Victor', '9283135885', 'M', '', '2026-08-13'],
+    ['SHS-21', 'team-shiningstars', 'Bro. Aaron', '9003226867', 'M', '', '2026-08-13'],
+    ['SHS-22', 'team-shiningstars', 'Bro. James', '9209241244', 'M', '', '2026-08-13']
+  ];
+
+  var D2 = ['D2-MOR', 'D2-AFT', 'D2-EVE'];
+  var D3 = ['D3-MOR', 'D3-AFT', 'D3-EVE'];
+  var D4 = ['D4-MOR', 'D4-AFT', 'D4-EVE'];
+  var GROUP_A_DAYS = D2.concat(D3, D4); // 14,15,16 Available
+  var GROUP_B_DAYS = D3.concat(D4); // 15,16 Available
+
+  var groupAIds = ['SHS-01', 'SHS-02', 'SHS-03', 'SHS-04', 'SHS-05', 'SHS-06', 'SHS-07', 'SHS-08',
+    'SHS-09', 'SHS-10', 'SHS-11', 'SHS-12', 'SHS-13', 'SHS-14', 'SHS-15', 'SHS-16'];
+  var groupBIds = ['SHS-17', 'SHS-18', 'SHS-19', 'SHS-20', 'SHS-21', 'SHS-22'];
+  var SERVICES_WILLING = ['MEALS', 'CROWD'];
+
+  var availability = [];
+  function addAvailability(ids, sessionIds) {
+    ids.forEach(function (id) {
+      sessionIds.forEach(function (sessionId) {
+        SERVICES_WILLING.forEach(function (serviceId) { availability.push([id, sessionId, serviceId]); });
+      });
+    });
+  }
+  addAvailability(groupAIds, GROUP_A_DAYS);
+  addAvailability(groupBIds, GROUP_B_DAYS);
+
+  var teamsResult = appendMissing_(ss, 'Teams', [0], teams);
+  var membersResult = appendMissing_(ss, 'Members', [0], members);
+  var availResult = appendMissing_(ss, 'Availability', [0, 1, 2], availability);
+
+  notify_(
+    'ShiningStars Team import complete (existing rows left untouched):\n' +
+    'Teams: ' + teamsResult.added + ' added, ' + teamsResult.skipped + ' already there\n' +
+    'Members: ' + membersResult.added + ' added, ' + membersResult.skipped + ' already there\n' +
+    'Availability: ' + availResult.added + ' added, ' + availResult.skipped + ' already there'
+  );
+}
+
 // Appends only the rows whose key (the values at keyCols) isn't already
 // present in the sheet. Never clears or modifies an existing row.
 function appendMissing_(ss, sheetName, keyCols, rows) {
